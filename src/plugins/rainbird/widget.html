@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 16px; }
+  h2 { color: #fff; margin-bottom: 4px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  h3 { color: #d4a017; margin: 14px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+  .status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600;
+    padding: 3px 9px; border-radius: 10px; }
+  .badge.online  { background: rgba(34,197,94,0.2);  color: #22c55e; }
+  .badge.offline { background: rgba(239,68,68,0.18); color: #ef4444; }
+  .badge.rain    { background: rgba(99,102,241,0.25); color: #818cf8; }
+  .badge.dry     { background: rgba(255,255,255,0.07); color: #888; }
+  .badge.active  { background: rgba(34,197,94,0.2); color: #22c55e; }
+  .badge.waiting { background: rgba(255,255,255,0.07); color: #888; }
+
+  .zone-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .zone-card {
+    background: #16213e; border: 1px solid #2a2a4a; border-radius: 10px;
+    padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .zone-card.running {
+    border-color: #22c55e; background: rgba(34,197,94,0.07);
+  }
+  .zone-header { display: flex; align-items: center; justify-content: space-between; }
+  .zone-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .zone-dot { width: 10px; height: 10px; border-radius: 50%; background: #333; flex-shrink: 0; }
+  .zone-dot.on { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+  .zone-controls { display: flex; gap: 6px; align-items: center; }
+  select {
+    background: #1a1a2e; color: #e0e0e0; border: 1px solid #2a2a4a;
+    border-radius: 4px; padding: 5px 6px; font-size: 12px; flex: 1;
+  }
+  select:focus { outline: none; border-color: #d4a017; }
+  .run-btn {
+    background: #22c55e; color: #0f1f0f; border: none; border-radius: 5px;
+    padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+    white-space: nowrap;
+  }
+  .run-btn:hover { background: #16a34a; }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .stop-btn {
+    width: 100%; background: #ef4444; color: #fff; border: none; border-radius: 6px;
+    padding: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 4px;
+  }
+  .stop-btn:hover { background: #dc2626; }
+  .stop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .offline-msg { color: #666; font-style: italic; font-size: 13px; text-align: center; padding: 20px 0; }
+  #status-msg { font-size: 11px; color: #888; margin-top: 8px; min-height: 16px; }
+</style>
+</head>
+<body>
+  <h2>💧 Sprinklers</h2>
+  <div class="status-row">
+    <span class="badge offline" id="online-badge">Offline</span>
+    <span class="badge dry" id="rain-badge">No Rain Sensor</span>
+    <span class="badge waiting" id="active-badge">Idle</span>
+  </div>
+
+  <div id="zone-area">
+    <div class="offline-msg">Waiting for sidecar...</div>
+  </div>
+
+  <button class="stop-btn" id="stop-btn" onclick="stopAll()" disabled>⏹ Stop All Zones</button>
+  <div id="status-msg"></div>
+
+  <script>
+    const API = window.PLUGIN_API_BASE || '/api/rainbird';
+    let _state = null;
+
+    async function loadState() {
+      try {
+        const res  = await fetch(API + '/state');
+        _state = await res.json();
+        render(_state);
+      } catch (e) {
+        document.getElementById('online-badge').textContent = 'Sidecar Down';
+        document.getElementById('online-badge').className = 'badge offline';
+      }
+    }
+
+    function render(s) {
+      // Online badge
+      const ob = document.getElementById('online-badge');
+      if (!s.sidecarUp) {
+        ob.textContent = 'Sidecar Down'; ob.className = 'badge offline';
+      } else if (!s.configured) {
+        ob.textContent = 'IP Not Set'; ob.className = 'badge offline';
+      } else if (!s.online) {
+        ob.textContent = 'Controller Offline'; ob.className = 'badge offline';
+      } else {
+        ob.textContent = 'Online'; ob.className = 'badge online';
+      }
+
+      // Rain sensor
+      const rb = document.getElementById('rain-badge');
+      rb.textContent = s.rain_sensor ? '🌧 Rain Detected' : '☀ Dry';
+      rb.className   = 'badge ' + (s.rain_sensor ? 'rain' : 'dry');
+
+      // Active zone (firmware 2.12 reports irrigating but not which zone)
+      const ab = document.getElementById('active-badge');
+      if (s.active_zone) {
+        const name = (s.zones.find(z => z.id === s.active_zone) || {}).name || ('Zone ' + s.active_zone);
+        ab.textContent = '▶ ' + name; ab.className = 'badge active';
+      } else if (s.irrigating) {
+        ab.textContent = '▶ Running'; ab.className = 'badge active';
+      } else {
+        ab.textContent = 'Idle'; ab.className = 'badge waiting';
+      }
+
+      // Zone grid
+      const area = document.getElementById('zone-area');
+      if (!s.zones || s.zones.length === 0) {
+        area.innerHTML = '<div class="offline-msg">No zones configured</div>';
+        document.getElementById('stop-btn').disabled = true;
+        return;
+      }
+      area.innerHTML = '<div class="zone-grid">' + s.zones.map(z => zoneCard(z)).join('') + '</div>';
+      document.getElementById('stop-btn').disabled = !(s.online && s.irrigating);
+    }
+
+    function zoneCard(z) {
+      const opts = [1,2,3,5,10,15,20,30].map(m =>
+        `<option value="${m}" ${m===10?'selected':''}>${m} min</option>`
+      ).join('');
+      return `
+        <div class="zone-card ${z.active ? 'running' : ''}" id="zc-${z.id}">
+          <div class="zone-header">
+            <span class="zone-name">${esc(z.name)}</span>
+            <div class="zone-dot ${z.active ? 'on' : ''}"></div>
+          </div>
+          <div class="zone-controls">
+            <select id="mins-${z.id}">${opts}</select>
+            <button class="run-btn" onclick="runZone(${z.id})" id="run-${z.id}">Run</button>
+          </div>
+        </div>`;
+    }
+
+    async function runZone(id) {
+      const mins = parseInt(document.getElementById('mins-' + id).value, 10);
+      const btn  = document.getElementById('run-' + id);
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const res  = await fetch(API + '/zones/' + id + '/run', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ minutes: mins }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setMsg('Zone ' + id + ' running for ' + mins + ' min');
+          setTimeout(loadState, 1500);
+        } else {
+          setMsg('Error: ' + (data.error || 'unknown'));
+        }
+      } catch (e) { setMsg('Error: ' + e.message); }
+      btn.disabled = false; btn.textContent = 'Run';
+    }
+
+    async function stopAll() {
+      const btn = document.getElementById('stop-btn');
+      btn.disabled = true; btn.textContent = 'Stopping...';
+      try {
+        const res  = await fetch(API + '/stop', { method: 'POST' });
+        const data = await res.json();
+        setMsg(data.success ? 'All zones stopped.' : 'Error: ' + data.error);
+        setTimeout(loadState, 1500);
+      } catch (e) { setMsg('Error: ' + e.message); }
+      btn.disabled = false; btn.textContent = '⏹ Stop All Zones';
+    }
+
+    function setMsg(msg) {
+      document.getElementById('status-msg').textContent = msg;
+      setTimeout(() => { document.getElementById('status-msg').textContent = ''; }, 5000);
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    loadState();
+    setInterval(loadState, 10000);
+  </script>
+</body>
+</html>

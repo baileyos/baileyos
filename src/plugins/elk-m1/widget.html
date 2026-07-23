@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELK M1 - Security Panel</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    color: #eceef3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(212, 168, 83, 0.3);
+  }
+  .header h1 {
+    font-size: 20px;
+    color: #ffce6a;
+    font-weight: 600;
+  }
+  .status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(212, 168, 83, 0.15);
+    color: #ffce6a;
+  }
+  .status.connected { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+  .section {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .section-title {
+    font-size: 13px;
+    color: #ffce6a;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  /* Zone List */
+  .zone-list { max-height: 300px; overflow-y: auto; }
+  .zone-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(20, 22, 30, 0.9);
+    font-size: 12px;
+  }
+  .zone-item:last-child { border-bottom: none; }
+  .zone-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+  .zone-dot.normal { background: #22c55e; }
+  .zone-dot.violated { background: #ef4444; }
+  .zone-dot.bypassed { background: #ffce6a; }
+  .zone-dot.trouble { background: #f97316; }
+  .zone-dot.alarm { background: #ef4444; animation: pulse 0.5s infinite; }
+  .zone-status-text {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+  }
+  .bypass-btn {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+  }
+  .bypass-btn:hover { background: rgba(255, 255, 255, 0.08); }
+  /* Output Controls */
+  .output-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(20, 22, 30, 0.9);
+    font-size: 12px;
+  }
+  .output-toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+  }
+  .output-toggle input { opacity: 0; width: 0; height: 0; }
+  .output-toggle .oslider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    transition: 0.3s;
+  }
+  .output-toggle .oslider:before {
+    content: "";
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background: #666;
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+  .output-toggle input:checked + .oslider {
+    background: rgba(212, 168, 83, 0.5);
+  }
+  .output-toggle input:checked + .oslider:before {
+    transform: translateX(16px);
+    background: #ffce6a;
+  }
+  /* Event Log */
+  .event-log {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  .event-list {
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 11px;
+  }
+  .event-item {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(20, 22, 30, 0.9);
+    display: flex;
+    gap: 8px;
+  }
+  .event-time { color: #666; min-width: 70px; }
+  .event-type {
+    min-width: 50px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 10px;
+  }
+  .event-type.arm { color: #ef4444; }
+  .event-type.disarm { color: #22c55e; }
+  .event-type.zone { color: #ffce6a; }
+  .event-type.alarm { color: #ef4444; }
+  .event-type.system { color: #818cf8; }
+  .event-text { color: #aaa; }
+  /* header polish — dark glass bar (matches Audio/Lights) */
+  .header { background: rgba(20,22,30,0.82) !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 14px !important; padding: 12px 16px !important; }
+  .header h1, .header h2, .header .title { background: linear-gradient(90deg, #ffe6b0, #ffc64d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Security Panel</h1>
+  <span class="status" id="connStatus">Connecting...</span>
+</div>
+
+<div class="section" style="margin-bottom: 16px;">
+  <div class="section-title">Zones</div>
+  <div class="zone-list" id="zones"></div>
+</div>
+<div class="section" id="outputSection" style="display:none;">
+  <div class="section-title">Outputs</div>
+  <div id="outputs"></div>
+</div>
+
+<div class="event-log">
+  <div class="section-title">Event Log</div>
+  <div class="event-list" id="events"></div>
+</div>
+
+<script>
+var state = { zones: [], outputs: [], events: [] };
+
+function renderZones(zones) {
+  var html = '';
+  zones.forEach(function(z) {
+    html += '<div class="zone-item" id="zone-' + z.zone + '">';
+    html += '<div><span class="zone-dot ' + z.status + '"></span>' + z.name + '</div>';
+    html += '<div style="display:flex;align-items:center;gap:6px;">';
+    html += '<span class="zone-status-text">' + z.status + '</span>';
+    html += '<button class="bypass-btn" onclick="bypassZone(' + z.zone + ')">Bypass</button>';
+    html += '</div></div>';
+  });
+  document.getElementById('zones').innerHTML = html;
+}
+
+function renderOutputs(outputs) {
+  if (!outputs || outputs.length === 0) {
+    document.getElementById('outputSection').style.display = 'none';
+    return;
+  }
+  document.getElementById('outputSection').style.display = 'block';
+  var html = '';
+  outputs.forEach(function(o) {
+    html += '<div class="output-item">';
+    html += '<span>' + o.name + '</span>';
+    html += '<label class="output-toggle">';
+    html += '<input type="checkbox"' + (o.active ? ' checked' : '') + ' onchange="setOutput(' + o.output + ', this.checked)">';
+    html += '<span class="oslider"></span></label>';
+    html += '</div>';
+  });
+  document.getElementById('outputs').innerHTML = html;
+}
+
+function renderEvents(events) {
+  var html = '';
+  var sorted = events.slice().reverse();
+  sorted.forEach(function(e) {
+    var d = new Date(e.ts);
+    var time = d.toLocaleDateString([], { month: 'numeric', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    html += '<div class="event-item">';
+    html += '<span class="event-time">' + time + '</span>';
+    html += '<span class="event-type ' + e.type + '">' + e.type + '</span>';
+    html += '<span class="event-text">' + e.text + '</span>';
+    html += '</div>';
+  });
+  document.getElementById('events').innerHTML = html;
+}
+
+function bypassZone(zone) {
+  fetch('/api/security/zone/' + zone + '/bypass', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ area: 1 })
+  });
+}
+
+function setOutput(output, active) {
+  fetch('/api/security/output/' + output, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active: active })
+  });
+}
+
+function handleUpdate(data) {
+  if (data.type === 'zone') {
+    for (var j = 0; j < state.zones.length; j++) {
+      if (state.zones[j].zone === data.zone) {
+        state.zones[j] = data;
+        break;
+      }
+    }
+    renderZones(state.zones);
+  } else if (data.type === 'event') {
+    state.events.push(data);
+    if (state.events.length > 50) state.events.shift();
+    renderEvents(state.events);
+  }
+}
+
+// Initial load
+fetch('/api/security/state')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    state = data;
+    var el = document.getElementById('connStatus');
+    if (data.connected) {
+      el.textContent = data.mock ? 'Mock Mode' : 'Connected';
+      el.classList.add('connected');
+    } else {
+      el.textContent = 'Disconnected';
+    }
+    renderZones(data.zones || []);
+    renderOutputs(data.outputs || []);
+    renderEvents(data.events || []);
+  })
+  .catch(function() {
+    document.getElementById('connStatus').textContent = 'Error';
+  });
+
+// SSE for live updates
+var evtSource = new EventSource('/api/elk-m1/stream');
+evtSource.onmessage = function(e) {
+  try {
+    var data = JSON.parse(e.data);
+    handleUpdate(data);
+  } catch(err) {}
+};
+evtSource.onerror = function() {
+  document.getElementById('connStatus').textContent = 'SSE Lost';
+  document.getElementById('connStatus').classList.remove('connected');
+};
+</script>
+</body>
+</html>

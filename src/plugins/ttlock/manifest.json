@@ -1,0 +1,12 @@
+{
+  "id": "ttlock",
+  "name": "TTLock Smart Locks",
+  "version": "1.0.0",
+  "category": "locks",
+  "icon": "lock",
+  "description": "TTLock cloud API smart locks",
+  "author": "MalamaOS",
+  "discovery": { "ble": { "serviceUuids": ["0000fee7-0000-1000-8000-00805f9b34fb"] } },
+  "widget": "widget.html",
+  "driver": "driver.ts"
+}

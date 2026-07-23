@@ -1,0 +1,60 @@
+{
+  // ── Plugin Manifest ─────────────────────────────────────────────────
+  // Every BaileyOS plugin MUST have a manifest.json in its root folder.
+  // The plugin-registry reads this file at startup to decide whether
+  // to load and how to wire the plugin into the system.
+
+  // Unique identifier (lowercase, kebab-case). Must match the folder name.
+  "id": "my-device",
+
+  // Human-readable name shown in the dashboard and admin panel.
+  "name": "My Device Plugin",
+
+  // SemVer version string. Bump this when you publish updates.
+  "version": "1.0.0",
+
+  // Short description shown in the plugin marketplace / admin list.
+  "description": "Example plugin that controls a fictional smart device.",
+
+  // Author or organization name.
+  "author": "Your Name <you@example.com>",
+
+  // Plugin category -- used for grouping in the dashboard.
+  // Common values: "lighting", "audio", "security", "climate",
+  //                "locks", "cameras", "sensors", "utility"
+  "category": "utility",
+
+  // The TypeScript driver file (relative to this folder).
+  "driver": "driver.ts",
+
+  // The dashboard widget file (relative to this folder).
+  // Set to null if your plugin has no UI.
+  "widget": "widget.html",
+
+  // Protocol your device speaks. Examples:
+  // "tcp", "serial", "http", "mqtt", "websocket", "bluetooth"
+  "protocol": "http",
+
+  // Default connection settings. These can be overridden in the
+  // BaileyOS admin panel after the plugin is installed.
+  "connection": {
+    "host": "192.168.1.100",
+    "port": 8080
+  },
+
+  // Capabilities this plugin provides. The discovery-engine and
+  // dashboard use these to know what the device can do.
+  "capabilities": [
+    "power",
+    "brightness",
+    "status"
+  ],
+
+  // Other plugin IDs this plugin depends on (loaded first).
+  // Leave empty if standalone.
+  "dependencies": [],
+
+  // If true, the plugin is loaded at startup. If false, it must
+  // be manually enabled in the admin panel.
+  "enabled": true
+}

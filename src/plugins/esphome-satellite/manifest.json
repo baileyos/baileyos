@@ -1,0 +1,10 @@
+{
+  "id": "esphome-satellite",
+  "name": "ESPHome Voice Satellite",
+  "version": "1.0.0",
+  "description": "Third Reality Voice Dev Edition — ESPHome native API client. Replaces Home Assistant as the voice pipeline host.",
+  "author": "Bailey",
+  "category": "automation",
+  "icon": "🎙️",
+  "driver": "driver.ts"
+}

@@ -1,0 +1,1 @@
+{   "id": "annke-cameras",   "name": "Annke Cameras",   "version": "1.0.0",   "category": "cameras",   "icon": "camera",   "description": "Annke DVR (Hikvision-OEM) camera system — ISAPI/RTSP",   "author": "MalamaOS",   "discovery": { "network": { "ports": [8000, 554], "macPrefixes": ["D0:3B:F4"] } },   "widget": "widget.html",   "driver": "driver.ts" }

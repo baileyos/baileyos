@@ -1,0 +1,1 @@
+{   "id": "lg-tv",   "name": "LG webOS TV",   "version": "1.0.0",   "category": "media",   "icon": "tv",   "description": "LG webOS Smart TV control",   "author": "MalamaOS",   "discovery": { "network": { "ports": [3001] } },   "widget": "widget.html",   "driver": "driver.ts" }

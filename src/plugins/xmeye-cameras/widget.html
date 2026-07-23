@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XMeye Cameras</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .header h2 {
+    color: #d4a853;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+  }
+  .status-dot.online { background: #22c55e; }
+  .status-dot.offline { background: #ef4444; }
+  .status-dot.mock { background: #f59e0b; }
+  .camera-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    aspect-ratio: 2.2 / 1;
+  }
+  .camera-cell {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .camera-cell:hover {
+    border-color: #d4a853;
+  }
+  .camera-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .camera-cell .label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    padding: 16px 8px 6px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .camera-cell .cam-name {
+    color: #d4a853;
+    font-weight: 600;
+  }
+  .camera-cell .cam-time {
+    color: rgba(255,255,255,0.4);
+    font-size: 10px;
+  }
+  .camera-cell .offline-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    color: #666;
+    font-size: 12px;
+  }
+  /* Stream overlay */
+  .stream-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 1000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .stream-overlay.active { display: flex; }
+  .stream-overlay .stream-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .stream-overlay .stream-title {
+    color: #d4a853;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .stream-overlay .stream-close {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e0e0e0;
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .stream-overlay .stream-close:hover { background: rgba(255,255,255,0.2); }
+  .stream-overlay .quality-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .quality-toggle button {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #999;
+    padding: 4px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .quality-toggle button.active {
+    background: rgba(212,168,83,0.2);
+    border-color: #d4a853;
+    color: #d4a853;
+  }
+  .stream-overlay img {
+    max-width: 90vw;
+    max-height: 70vh;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>XMeye Cameras</h2>
+  <div id="statusBadge"><span class="status-dot offline"></span>Loading...</div>
+</div>
+
+<div class="camera-grid" id="cameraGrid"></div>
+
+<div class="stream-overlay" id="streamOverlay">
+  <div class="stream-header">
+    <span class="stream-title" id="streamTitle">Camera</span>
+    <button class="stream-close" onclick="closeStream()">Close</button>
+  </div>
+  <div class="quality-toggle">
+    <button id="btnHD" onclick="switchQuality(0)">HD</button>
+    <button id="btnSD" class="active" onclick="switchQuality(1)">SD</button>
+  </div>
+  <img id="streamImg" src="" alt="Live Stream">
+</div>
+
+<script>
+  const grid = document.getElementById('cameraGrid');
+  const overlay = document.getElementById('streamOverlay');
+  const streamImg = document.getElementById('streamImg');
+  const streamTitle = document.getElementById('streamTitle');
+  const btnHD = document.getElementById('btnHD');
+  const btnSD = document.getElementById('btnSD');
+  const statusBadge = document.getElementById('statusBadge');
+
+  let state = null;
+  let activeStreamChannel = null;
+  let activeStreamQuality = 1; // default SD
+  let refreshTimer = null;
+
+  function timeAgo(ts) {
+    if (!ts) return '';
+    const sec = Math.floor((Date.now() - ts) / 1000);
+    if (sec < 10) return 'just now';
+    if (sec < 60) return sec + 's ago';
+    if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+    return Math.floor(sec / 3600) + 'h ago';
+  }
+
+  function renderGrid(data) {
+    state = data;
+    const channels = data.channels || [];
+
+    // Status badge
+    const dot = data.mockMode ? 'mock' : (data.online ? 'online' : 'offline');
+    const label = data.mockMode ? 'Mock Mode' : (data.online ? 'Online' : 'Offline');
+    statusBadge.innerHTML = '<span class="status-dot ' + dot + '"></span>' + label;
+
+    grid.innerHTML = '';
+    channels.forEach(function(ch) {
+      const cell = document.createElement('div');
+      cell.className = 'camera-cell';
+      cell.onclick = function() { openStream(ch.id, ch.name); };
+
+      if (ch.online && ch.hasSnapshot) {
+        var img = document.createElement('img');
+        img.src = ch.snapshotUrl + '?t=' + Date.now();
+        img.alt = ch.name;
+        img.onerror = function() { this.style.display = 'none'; };
+        cell.appendChild(img);
+      } else {
+        var offDiv = document.createElement('div');
+        offDiv.className = 'offline-overlay';
+        offDiv.textContent = ch.online ? 'No snapshot' : 'Offline';
+        cell.appendChild(offDiv);
+      }
+
+      var labelDiv = document.createElement('div');
+      labelDiv.className = 'label';
+      labelDiv.innerHTML = '<span class="cam-name">' + ch.name + '</span><span class="cam-time">' + timeAgo(ch.lastSnapshotTime) + '</span>';
+      cell.appendChild(labelDiv);
+
+      grid.appendChild(cell);
+    });
+  }
+
+  function openStream(channel, name) {
+    activeStreamChannel = channel;
+    activeStreamQuality = 1;
+    streamTitle.textContent = name + ' - Live';
+    btnSD.classList.add('active');
+    btnHD.classList.remove('active');
+    streamImg.src = '/api/cameras/stream/' + channel + '?stream=1';
+    overlay.classList.add('active');
+  }
+
+  function closeStream() {
+    overlay.classList.remove('active');
+    streamImg.src = '';
+    activeStreamChannel = null;
+  }
+
+  function switchQuality(q) {
+    if (!activeStreamChannel) return;
+    activeStreamQuality = q;
+    btnHD.classList.toggle('active', q === 0);
+    btnSD.classList.toggle('active', q === 1);
+    streamImg.src = '/api/cameras/stream/' + activeStreamChannel + '?stream=' + q;
+  }
+
+  async function fetchState() {
+    try {
+      const res = await fetch('/api/cameras/state');
+      const data = await res.json();
+      renderGrid(data);
+    } catch (e) {
+      statusBadge.innerHTML = '<span class="status-dot offline"></span>Connection error';
+    }
+  }
+
+  // Initial load + auto-refresh every 10s
+  fetchState();
+  refreshTimer = setInterval(fetchState, 10000);
+
+  // Close stream on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeStream();
+  });
+</script>
+</body>
+</html>

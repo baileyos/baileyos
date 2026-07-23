@@ -1,0 +1,10 @@
+{
+  "id": "broadlink",
+  "name": "BroadLink IR/RF",
+  "version": "1.0.0",
+  "category": "av-control",
+  "icon": "media",
+  "description": "IR and RF blaster control via BroadLink RM4 Pro — TVs, cable boxes, AV receivers, ceiling fans",
+  "author": "MalamaOS",
+  "driver": "driver.ts"
+}

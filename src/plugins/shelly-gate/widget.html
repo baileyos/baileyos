@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shelly Gate / Garage</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+
+  .gate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .gate-card {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.3s;
+  }
+  .gate-card.open    { border-color: #d4a853; }
+  .gate-card.offline { opacity: 0.5; }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .device-name { font-size: 18px; font-weight: 600; color: #fff; }
+
+  .status-badge {
+    font-size: 12px; font-weight: 600; padding: 4px 10px;
+    border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .status-badge.closed  { background: rgba(74,222,128,0.15);  color: #4ade80; }
+  .status-badge.open    { background: rgba(212,168,83,0.15);   color: #d4a853; }
+  .status-badge.ready   { background: rgba(99,102,241,0.15);   color: #818cf8; }
+  .status-badge.offline { background: rgba(239,68,68,0.15);    color: #ef4444; }
+
+  .gate-icon {
+    text-align: center; margin: 20px 0; font-size: 48px;
+    transition: transform 0.4s ease;
+  }
+  .gate-icon.open          { transform: rotate(90deg); color: #d4a853; }
+  .gate-icon.closed        { color: #4ade80; }
+  .gate-icon.garage        { color: #818cf8; }
+  .gate-icon.garage-open   { color: #d4a853; }
+  .gate-icon.garage-closed { color: #4ade80; }
+
+  .countdown-bar {
+    height: 4px; background: #2a2a2a; border-radius: 2px;
+    margin: 12px 0; overflow: hidden; display: none;
+  }
+  .countdown-bar.active { display: block; }
+  .countdown-bar .fill {
+    height: 100%; background: #d4a853; border-radius: 2px;
+    transition: width 1s linear;
+  }
+  .countdown-text {
+    text-align: center; font-size: 13px; color: #d4a853;
+    margin-bottom: 12px; display: none;
+  }
+  .countdown-text.active { display: block; }
+
+  .toggle-btn {
+    width: 100%; padding: 12px; border: 2px solid #d4a853;
+    background: transparent; color: #d4a853; font-size: 15px;
+    font-weight: 600; border-radius: 8px; cursor: pointer;
+    transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .toggle-btn:hover    { background: #d4a853; color: #0a0a0a; }
+  .toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .toggle-btn.open     { background: #d4a853; color: #0a0a0a; }
+  .toggle-btn.garage-btn {
+    border-color: #818cf8; color: #818cf8;
+  }
+  .toggle-btn.garage-btn:hover { background: #818cf8; color: #0a0a0a; }
+
+  .device-meta {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-top: 16px; padding-top: 16px; border-top: 1px solid #2a2a2a;
+  }
+  .meta-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; }
+  .meta-item .value { color: #ccc; }
+
+  .wifi-signal { display: inline-block; width: 16px; height: 12px; }
+  .wifi-signal .bar {
+    display: inline-block; width: 3px; background: #555;
+    border-radius: 1px; margin-right: 1px; vertical-align: bottom;
+  }
+  .wifi-signal .bar.active { background: #4ade80; }
+
+  /* ── Auto-Close Settings ── */
+  .autoclose-section {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid #222;
+  }
+  .autoclose-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .autoclose-label { font-size: 12px; color: #888; font-weight: 500; }
+
+  .switch { position: relative; display: inline-block; width: 38px; height: 22px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .sw-slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background: #333; border-radius: 22px; transition: 0.3s;
+  }
+  .sw-slider:before {
+    position: absolute; content: ""; height: 16px; width: 16px;
+    left: 3px; bottom: 3px; background: #666; border-radius: 50%; transition: 0.3s;
+  }
+  input:checked + .sw-slider { background: #d4a853; }
+  input:checked + .sw-slider:before { background: #fff; transform: translateX(16px); }
+
+  .time-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .time-chip {
+    padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    cursor: pointer; background: #1a1a1a; color: #555;
+    border: 1px solid #2a2a2a; transition: all 0.15s;
+  }
+  .time-chip:hover  { border-color: #d4a853; color: #d4a853; }
+  .time-chip.active { background: rgba(212,168,83,0.15); color: #d4a853; border-color: #d4a853; }
+  .time-chip.disabled { opacity: 0.3; pointer-events: none; }
+
+  /* ── Card History ── */
+  .card-history { margin-top: 14px; padding-top: 12px; border-top: 1px solid #222; }
+  .card-history-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: #444; margin-bottom: 8px;
+  }
+  .card-history-empty { font-size: 12px; color: #444; text-align: center; padding: 6px 0; }
+  .evt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; border-bottom: 1px solid #1c1c1c; font-size: 12px;
+  }
+  .evt:last-child { border-bottom: none; }
+  .evt-icon   { font-size: 13px; flex-shrink: 0; }
+  .evt-action { font-weight: 700; min-width: 56px; }
+  .evt-action.opened    { color: #d4a853; }
+  .evt-action.closed    { color: #4ade80; }
+  .evt-action.triggered { color: #818cf8; }
+  .evt-src {
+    font-size: 10px; font-weight: 700; padding: 2px 6px;
+    border-radius: 8px; text-transform: uppercase; letter-spacing: 0.3px; flex: 1;
+  }
+  .src-dashboard  { background: rgba(99,102,241,0.2);  color: #818cf8; }
+  .src-auto-close { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+  .src-external   { background: rgba(239,68,68,0.15);   color: #f87171; }
+  .evt-time { color: #555; font-size: 11px; flex-shrink: 0; }
+
+  .no-devices { text-align: center; padding: 60px 20px; color: #555; font-size: 16px; }
+</style>
+</head>
+<body>
+  <div id="gate-container" class="gate-grid">
+    <div class="no-devices">Connecting...</div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let state = { devices: [] };
+    let autoCloseTotals = {};
+    let historyByDevice = {};
+
+    const TIME_PRESETS = [
+      { label: '15s', seconds: 15 },
+      { label: '30s', seconds: 30 },
+      { label: '1m',  seconds: 60 },
+      { label: '2m',  seconds: 120 },
+      { label: '5m',  seconds: 300 },
+    ];
+
+    // --- Render ---
+    function render() {
+      const container = document.getElementById('gate-container');
+      if (!state.devices || state.devices.length === 0) {
+        container.innerHTML = '<div class="no-devices">No devices found</div>';
+        return;
+      }
+
+      container.innerHTML = state.devices.map(d => {
+        const isGarage  = d.type === 'garage';
+        const isOffline = !d.online;
+        const isOpen    = !isGarage && d.output;
+        const gDoorOpen = isGarage && d.garageOpen === true;
+        const gDoorNull = isGarage && d.garageOpen === null;
+
+        const statusClass = isOffline ? 'offline'
+                          : isGarage  ? (gDoorNull ? 'ready' : gDoorOpen ? 'open' : 'closed')
+                          : (isOpen ? 'open' : 'closed');
+        const statusText  = isOffline ? 'Offline'
+                          : isGarage  ? (gDoorNull ? 'Unknown' : gDoorOpen ? 'Open' : 'Closed')
+                          : (isOpen ? 'Open' : 'Closed');
+        const cardClass   = 'gate-card' + ((isOpen || gDoorOpen) ? ' open' : '') + (isOffline ? ' offline' : '');
+
+        const countdown = !isGarage ? d.autoCloseRemaining : null;
+        const total     = autoCloseTotals[d.id] || 30;
+        const pct       = countdown ? (countdown / total) * 100 : 0;
+
+        const wifiBars = wifiStrength(d.wifi_rssi);
+        const temp     = d.temperature != null ? d.temperature.toFixed(1) + '°C' : '--';
+        const uptime   = d.uptime != null ? formatUptime(d.uptime) : '--';
+
+        // Icon
+        const iconClass = isGarage
+          ? (gDoorNull ? 'garage' : gDoorOpen ? 'garage-open' : 'garage-closed')
+          : (isOpen ? 'open' : 'closed');
+        const iconChar  = isGarage ? '🚪' : (isOpen ? '🚧' : '🔒');
+
+        // Button
+        const btnClass = isGarage
+          ? 'toggle-btn garage-btn'
+          : ('toggle-btn' + (isOpen ? ' open' : ''));
+        const btnText  = isGarage ? 'Trigger' : (isOpen ? 'Close Gate' : 'Open Gate');
+
+        // Auto-close section (gate only)
+        const acSection = !isGarage ? buildAutoClose(d) : '';
+
+        // History
+        const events     = historyByDevice[d.id] || [];
+        const historyHtml = events.length === 0
+          ? '<div class="card-history-empty">No events yet</div>'
+          : events.map(e => {
+              const icon     = e.action === 'opened' ? '🔓'
+                             : e.action === 'closed' ? '🔒'
+                             : '🚪';
+              const srcLabel = e.source === 'auto-close' ? 'Auto-Close'
+                             : e.source === 'external'   ? 'Remote' : 'Bailey';
+              return '<div class="evt">'
+                + '<span class="evt-icon">' + icon + '</span>'
+                + '<span class="evt-action ' + e.action + '">' + cap(e.action) + '</span>'
+                + '<span class="evt-src src-' + e.source + '">' + srcLabel + '</span>'
+                + '<span class="evt-time">' + fmtTime(e.ts) + '</span>'
+                + '</div>';
+            }).join('');
+
+        return '<div class="' + cardClass + '" data-id="' + d.id + '">'
+          + '<div class="card-header">'
+          +   '<span class="device-name">' + esc(d.name) + '</span>'
+          +   '<span class="status-badge ' + statusClass + '">' + statusText + '</span>'
+          + '</div>'
+          + '<div class="gate-icon ' + iconClass + '">' + iconChar + '</div>'
+          + (isGarage ? '' :
+              '<div class="countdown-bar' + (countdown ? ' active' : '') + '">'
+            + '  <div class="fill" style="width:' + pct + '%"></div>'
+            + '</div>'
+            + '<div class="countdown-text' + (countdown ? ' active' : '') + '">'
+            + '  Auto-closing in ' + (countdown || 0) + 's'
+            + '</div>'
+          )
+          + '<button class="' + btnClass + '"'
+          + ' onclick="toggleDevice(\'' + d.id + '\')"'
+          +   (isOffline ? ' disabled' : '') + '>'
+          +   btnText
+          + '</button>'
+          + '<div class="device-meta">'
+          +   '<div class="meta-item"><span>🌡️</span><span class="value">' + temp + '</span></div>'
+          +   '<div class="meta-item"><span class="wifi-signal">' + wifiBars + '</span><span class="value">' + (d.wifi_rssi != null ? d.wifi_rssi + ' dBm' : '--') + '</span></div>'
+          +   '<div class="meta-item"><span>⏱</span><span class="value">' + uptime + '</span></div>'
+          +   '<div class="meta-item"><span>📶</span><span class="value">' + (d.wifi_ssid || '--') + '</span></div>'
+          + '</div>'
+          + acSection
+          + '<div class="card-history">'
+          +   '<div class="card-history-title">Recent Activity</div>'
+          +   historyHtml
+          + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function buildAutoClose(d) {
+      const enabled = !!d.autoCloseEnabled;
+      const chips = TIME_PRESETS.map(p => {
+        const active  = d.autoCloseSeconds === p.seconds ? ' active' : '';
+        const disabled = !enabled ? ' disabled' : '';
+        return '<span class="time-chip' + active + disabled + '"'
+          + ' onclick="setAcTime(\'' + d.id + '\',' + p.seconds + ')">'
+          + p.label + '</span>';
+      }).join('');
+
+      return '<div class="autoclose-section">'
+        + '<div class="autoclose-row">'
+        +   '<span class="autoclose-label">Auto-Close</span>'
+        +   '<label class="switch">'
+        +     '<input type="checkbox"' + (enabled ? ' checked' : '')
+        +     ' onchange="toggleAc(\'' + d.id + '\',this.checked)">'
+        +     '<span class="sw-slider"></span>'
+        +   '</label>'
+        + '</div>'
+        + '<div class="time-presets">' + chips + '</div>'
+        + '</div>';
+    }
+
+    // --- Helpers ---
+    function wifiStrength(rssi) {
+      if (rssi == null) return '';
+      const bars = rssi > -50 ? 4 : rssi > -60 ? 3 : rssi > -70 ? 2 : 1;
+      let html = '';
+      for (let i = 1; i <= 4; i++) {
+        const h = 3 + i * 2;
+        html += '<span class="bar' + (i <= bars ? ' active' : '') + '" style="height:' + h + 'px"></span>';
+      }
+      return html;
+    }
+
+    function formatUptime(s) {
+      if (s < 3600)  return Math.floor(s / 60) + 'm';
+      if (s < 86400) return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+      return Math.floor(s / 86400) + 'd ' + Math.floor((s % 86400) / 3600) + 'h';
+    }
+
+    function fmtTime(iso) {
+      const d    = new Date(iso);
+      const diff = Math.floor((Date.now() - d) / 60000);
+      if (diff < 1)  return 'just now';
+      if (diff < 60) return diff + 'm ago';
+      const h = Math.floor(diff / 60);
+      if (h < 24)    return h + 'h ago';
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+           + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    function esc(s) {
+      const el = document.createElement('div');
+      el.textContent = s;
+      return el.innerHTML;
+    }
+
+    // --- API ---
+    async function toggleDevice(id) {
+      try {
+        await fetch(API_BASE + '/api/gate/' + id + '/toggle', { method: 'POST' });
+      } catch (err) { console.error('Toggle error:', err); }
+    }
+
+    async function pressDevice(id, evt) {
+      if (evt) evt.preventDefault();
+      try {
+        await fetch(API_BASE + '/api/gate/' + id + '/press', { method: 'POST' });
+      } catch (err) { console.error('Press error:', err); }
+    }
+
+    async function releaseDevice(id, evt) {
+      if (evt) evt.preventDefault();
+      try {
+        await fetch(API_BASE + '/api/gate/' + id + '/release', { method: 'POST' });
+      } catch (err) { console.error('Release error:', err); }
+    }
+
+    async function toggleAc(id, enabled) {
+      try {
+        await fetch(API_BASE + '/api/gate/' + id + '/autoclose', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled }),
+        });
+        // Optimistic UI — update chip states immediately
+        const chips = document.querySelectorAll('[data-id="' + id + '"] .time-chip');
+        chips.forEach(c => {
+          if (enabled) c.classList.remove('disabled');
+          else         c.classList.add('disabled');
+        });
+      } catch (err) { console.error('Auto-close toggle error:', err); }
+    }
+
+    async function setAcTime(id, seconds) {
+      try {
+        await fetch(API_BASE + '/api/gate/' + id + '/autoclose', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seconds }),
+        });
+        await fetchState();
+      } catch (err) { console.error('Auto-close time error:', err); }
+    }
+
+    async function fetchState() {
+      try {
+        const res = await fetch(API_BASE + '/api/gate/state');
+        state = await res.json();
+        state.devices.forEach(d => {
+          if (d.autoCloseRemaining && !autoCloseTotals[d.id]) autoCloseTotals[d.id] = d.autoCloseRemaining;
+          if (!d.autoCloseRemaining) delete autoCloseTotals[d.id];
+        });
+        render();
+      } catch (err) { console.error('State error:', err); }
+    }
+
+    async function fetchHistory() {
+      try {
+        const res  = await fetch(API_BASE + '/api/gate/history');
+        const data = await res.json();
+        historyByDevice = {};
+        for (const e of (data.events || [])) {
+          if (!historyByDevice[e.deviceId]) historyByDevice[e.deviceId] = [];
+          if (historyByDevice[e.deviceId].length < 4) historyByDevice[e.deviceId].push(e);
+        }
+        render();
+      } catch (err) { console.error('History error:', err); }
+    }
+
+    setInterval(fetchState,   2000);
+    setInterval(fetchHistory, 15000);
+
+    fetchState();
+    fetchHistory();
+  </script>
+</body>
+</html>

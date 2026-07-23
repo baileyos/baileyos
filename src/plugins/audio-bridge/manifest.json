@@ -1,0 +1,10 @@
+{
+  "id": "audio-bridge",
+  "name": "Audio Bridge",
+  "version": "1.0.0",
+  "category": "audio",
+  "icon": "audio",
+  "description": "Routes Bailey TTS announcements to HTD Lync 12 zones via PC audio output (USB→RCA→HTD source)",
+  "author": "MalamaOS",
+  "driver": "driver.ts"
+}

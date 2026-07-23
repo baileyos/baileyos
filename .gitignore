@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit
+.env
+config.json
+config.json.bak*
+config.json.bak-*
+data/auth.json
+
+# Runtime state — high-churn, not useful in history
+data/gate-events.json
+data/digital-zoom.json
+
+# Dev scratch — one-off diagnostics, not part of the codebase
+test-forge.ts
+
+# Runtime logs
+logs/
+*.log
+actions.jsonl
+
+# Vision AI — runtime snapshots and event logs
+src/plugins/vision-ai/person-snapshots/
+src/plugins/vision-ai/vehicle-snapshots/
+src/plugins/vision-ai/person-log.jsonl
+src/plugins/vision-ai/vehicle-log.jsonl
+src/plugins/vision-ai/gate-events.jsonl
+
+# Vision sidecar runtime data
+data/hls/
+data/snapshots/
+data/garage-state.json
+
+# Device registry (runtime, auto-generated)
+device-registry.json
+
+# ML model weights — too large for GitHub (use LFS or store separately)
+src/plugins/voice-assistant/python/**/*.onnx
+src/plugins/voice-assistant/python/**/*.ckpt
+src/plugins/voice-assistant/python/**/*.bin
+src/plugins/voice-assistant/python/**/*.pt
+src/plugins/voice-assistant/python/**/*.pth
+
+# TypeScript build output
+dist/
+*.js.map
+
+# OS
+.DS_Store
+Thumbs.db

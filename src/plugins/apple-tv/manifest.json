@@ -1,0 +1,10 @@
+{
+  "id": "apple-tv",
+  "name": "Apple TV",
+  "version": "1.0.0",
+  "category": "av-control",
+  "icon": "media",
+  "description": "Network control for Apple TV devices via pyatv — play/pause, app switching, volume, now-playing",
+  "author": "MalamaOS",
+  "driver": "driver.ts"
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projector</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:transparent; color:#eceef3; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; padding:16px; }
+  .header { background:rgba(20,22,30,0.82); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+  .header h2 { background:linear-gradient(90deg,#ffe6b0,#ffc64d); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-weight:800; font-size:18px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:#64748b; display:inline-block; margin-right:6px; }
+  .status-dot.on { background:#22c55e; box-shadow:0 0 8px #22c55e; }
+  .status-dot.cooling { background:#f59e0b; }
+  .status-dot.warming { background:#f59e0b; animation:pulse 1s infinite; }
+  .status-dot.off { background:#ef4444; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .card { background:rgba(20,22,30,0.9); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:16px; margin-bottom:12px; }
+  .card-title { color:#94a3b8; font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+  .btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#ccc; padding:10px 16px; cursor:pointer; font-size:13px; flex:1; text-align:center; transition:all 0.2s; min-width:80px; }
+  .btn:hover { border-color:#ffce6a; color:#ffce6a; }
+  .btn.success { border-color:#22c55e; color:#22c55e; background:rgba(34,197,94,0.1); }
+  .btn.danger { border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,0.1); }
+  .btn.active { border-color:#ffce6a; color:#ffce6a; background:rgba(212,168,83,0.15); font-weight:600; }
+  .info { color:#64748b; font-size:12px; text-align:center; padding:20px; }
+  .power-state { font-size:24px; font-weight:700; text-align:center; padding:12px 0; }
+  .power-state.on { color:#22c55e; }
+  .power-state.off { color:#ef4444; }
+  .power-state.warming,.power-state.cooling { color:#f59e0b; }
+  .input-badge { display:inline-block; background:rgba(212,168,83,0.15); border:1px solid rgba(212,168,83,0.4); border-radius:6px; padding:4px 12px; font-size:12px; color:#ffce6a; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h2>&#127916; Projector</h2>
+  <span id="hdr-status" style="font-size:12px;color:#64748b">Loading...</span>
+</div>
+<div id="content"><div class="info">Connecting...</div></div>
+<script>
+var currentState = null;
+
+function api(path, body) {
+  return fetch(path, { method: body !== undefined ? 'POST' : 'GET',
+    headers: body !== undefined ? {'Content-Type':'application/json'} : {},
+    body: body !== undefined ? JSON.stringify(body) : undefined
+  }).then(function(r){return r.json();}).catch(function(){return null;});
+}
+
+function render(data) {
+  if (!data || !data.projectors) { document.getElementById('content').innerHTML = '<div class="info">No projectors configured</div>'; return; }
+  var p = data.projectors[0];
+  if (!p) { document.getElementById('content').innerHTML = '<div class="info">No projectors found</div>'; return; }
+  currentState = p;
+  var dotCls = p.power === 'on' ? 'on' : p.power === 'cooling' || p.power === 'warming' ? 'cooling' : 'off';
+  document.getElementById('hdr-status').innerHTML = '<span class="status-dot ' + dotCls + '"></span>' + (p.connected ? p.name : 'Offline');
+  var html = '<div class="card">';
+  html += '<div class="card-title">Power</div>';
+  html += '<div class="power-state ' + p.power + '">' + p.power.toUpperCase() + '</div>';
+  if (p.power === 'on') html += '<div style="text-align:center"><span class="input-badge">&#128249; ' + (p.input || 'Unknown input') + '</span></div>';
+  html += '<div class="btn-row" style="margin-top:12px">';
+  html += '<div class="btn success" onclick="setPower(true)">&#9211; On</div>';
+  html += '<div class="btn danger" onclick="setPower(false)">&#9211; Off</div>';
+  html += '</div></div>';
+  html += '<div class="card"><div class="card-title">Input Source</div><div class="btn-row">';
+  html += '<div class="btn" onclick="setInput(\'HDMI1\')">HDMI 1</div>';
+  html += '<div class="btn" onclick="setInput(\'HDMI2\')">HDMI 2</div>';
+  html += '<div class="btn" onclick="setInput(\'VIDEO\')">Video</div>';
+  html += '</div></div>';
+  html += '<div class="card"><div class="card-title">AV Mute</div><div class="btn-row">';
+  html += '<div class="btn' + (p.avMuted ? ' active' : '') + '" onclick="setMute(true)">&#128264; Mute</div>';
+  html += '<div class="btn' + (!p.avMuted ? ' active' : '') + '" onclick="setMute(false)">&#128266; Unmute</div>';
+  html += '</div></div>';
+  document.getElementById('content').innerHTML = html;
+}
+
+window.setPower = function(on) {
+  api('/api/projector/power', {on: on}).then(function(){setTimeout(fetchState, 2000);});
+};
+window.setInput = function(input) {
+  api('/api/projector/input', {input: input}).then(function(){setTimeout(fetchState, 1000);});
+};
+window.setMute = function(mute) {
+  api('/api/projector/mute', {mute: mute}).then(function(){setTimeout(fetchState, 500);});
+};
+
+function fetchState() {
+  api('/api/projector/state').then(function(d){ if(d) render(d); });
+}
+fetchState();
+setInterval(fetchState, 15000);
+</script>
+</body>
+</html>

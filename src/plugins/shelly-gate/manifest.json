@@ -1,0 +1,12 @@
+{
+  "id": "shelly-gate",
+  "name": "Shelly Gate Controller",
+  "version": "1.0.0",
+  "category": "gate",
+  "icon": "gate",
+  "description": "Shelly Gen 3 relay for gate control with auto-close",
+  "author": "MalamaOS",
+  "discovery": { "network": { "ports": [80] } },
+  "widget": "widget.html",
+  "driver": "driver.ts"
+}

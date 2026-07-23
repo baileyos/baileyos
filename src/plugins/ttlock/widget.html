@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTLock Widget - MalamaOS DEV</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: transparent; color: #eceef3;
+  font-family: -apple-system, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  padding: 16px; min-height: 100vh;
+}
+
+.widget-card {
+  background: rgba(20, 22, 30, 0.9);
+  border: 1px solid rgba(212,168,83,0.15);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.widget-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(212,168,83,0.12);
+}
+.widget-title {
+  font-size: 16px; font-weight: 700; color: #ffce6a;
+  display: flex; align-items: center; gap: 8px;
+}
+.widget-title .icon { font-size: 20px; }
+.connection-badge {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.8px; padding: 4px 10px; border-radius: 8px;
+}
+.connection-badge.online { background: rgba(52,199,89,0.15); color: #34c759; }
+.connection-badge.offline { background: rgba(255,59,48,0.15); color: #ff3b30; }
+.connection-badge.mock { background: rgba(245,166,35,0.15); color: #f5a623; }
+
+/* Lock rows */
+.lock-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid rgba(20, 22, 30, 0.9);
+}
+.lock-row:last-child { border-bottom: none; }
+.lock-info { flex: 1; min-width: 0; }
+.lock-name {
+  font-size: 13px; font-weight: 600; color: #e0e0e0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lock-meta {
+  display: flex; align-items: center; gap: 10px; margin-top: 4px;
+}
+.lock-online-dot {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+}
+.lock-battery {
+  font-size: 11px; color: #888; display: flex; align-items: center; gap: 4px;
+}
+.battery-bar {
+  width: 28px; height: 10px; border-radius: 4px;
+  background: rgba(255,255,255,0.08); display: inline-block;
+  position: relative; overflow: hidden; vertical-align: middle;
+}
+.battery-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px;
+  transition: width 0.3s;
+}
+.lock-state {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; margin-right: 10px;
+}
+.lock-state.locked { color: #34c759; }
+.lock-state.unlocked { color: #ff3b30; }
+.lock-state.unknown { color: #888; }
+
+.lock-btn {
+  padding: 7px 16px; border-radius: 10px;
+  border: 2px solid rgba(212,168,83,0.25); background: rgba(212,168,83,0.08);
+  color: #ffce6a; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.lock-btn:hover { background: rgba(212,168,83,0.15); }
+.lock-btn:active { transform: scale(0.96); }
+.lock-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.lock-btn.is-locked {
+  border-color: rgba(255,59,48,0.3); background: rgba(255,59,48,0.1); color: #ff3b30;
+}
+.lock-btn.is-unlocked {
+  border-color: rgba(52,199,89,0.3); background: rgba(52,199,89,0.08); color: #34c759;
+}
+.refresh-btn {
+  padding: 7px 10px; border-radius: 10px; margin-left: 6px;
+  border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);
+  color: #888; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+  cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+}
+.refresh-btn:hover { color: #ccc; background: rgba(255,255,255,0.1); }
+.refresh-btn:active { transform: scale(0.96); }
+
+/* Activity log */
+.activity-section {
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid rgba(212,168,83,0.12);
+}
+.activity-title {
+  font-size: 11px; font-weight: 600; color: #888;
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+}
+.activity-list { max-height: 140px; overflow-y: auto; }
+.activity-item {
+  font-size: 11px; color: #777; padding: 4px 0;
+  border-bottom: 1px solid rgba(20, 22, 30, 0.9);
+  display: flex; justify-content: space-between;
+}
+.activity-item .act-desc { flex: 1; }
+.activity-item .act-time { color: #555; font-size: 10px; flex-shrink: 0; margin-left: 8px; }
+
+.empty-state {
+  text-align: center; padding: 24px 0; color: #555; font-size: 12px;
+}
+
+/* Refresh indicator */
+.refresh-bar {
+  margin-top: 12px; text-align: center; font-size: 10px; color: #555;
+}
+</style>
+</head>
+<body>
+
+<div class="widget-card">
+  <div class="widget-header">
+    <div class="widget-title"><span class="icon">&#128274;</span> Smart Locks</div>
+    <span class="connection-badge offline" id="conn-badge">Offline</span>
+  </div>
+
+  <div id="locks-container">
+    <div class="empty-state">Loading locks...</div>
+  </div>
+
+  <div class="activity-section">
+    <div class="activity-title">Recent Activity</div>
+    <div class="activity-list" id="activity-list">
+      <div class="empty-state">No activity</div>
+    </div>
+  </div>
+
+  <div class="refresh-bar" id="refresh-bar">Last updated: --</div>
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+let lockData = { connected: false, mock: false, locks: [] };
+
+function batteryColor(pct) {
+  if (pct > 30) return '#34c759';
+  if (pct > 10) return '#f5a623';
+  return '#ff3b30';
+}
+
+function renderLocks() {
+  const container = document.getElementById('locks-container');
+  const badge = document.getElementById('conn-badge');
+
+  // Connection badge
+  if (!lockData.connected) {
+    badge.className = 'connection-badge offline';
+    badge.textContent = 'Offline';
+  } else if (lockData.mock) {
+    badge.className = 'connection-badge mock';
+    badge.textContent = 'Mock';
+  } else {
+    badge.className = 'connection-badge online';
+    badge.textContent = 'Online';
+  }
+
+  if (!lockData.locks || lockData.locks.length === 0) {
+    container.innerHTML = '<div class="empty-state">No locks found</div>';
+    return;
+  }
+
+  container.innerHTML = lockData.locks.map(lock => {
+    const bc = batteryColor(lock.battery || 0);
+    const onlineColor = lock.online ? '#34c759' : '#ff3b30';
+    const stateClass = !lock.stateKnown ? 'unknown' : (lock.locked ? 'locked' : 'unlocked');
+    const stateLabel = !lock.stateKnown ? '?' : (lock.locked ? 'Locked' : 'Open');
+    const btnClass = !lock.stateKnown ? '' : (lock.locked ? 'is-locked' : 'is-unlocked');
+    const btnLabel = !lock.stateKnown ? 'Refresh' : (lock.locked ? 'Unlock' : 'Lock');
+    const btnAction = !lock.stateKnown
+      ? `refreshLock('${lock.id}')`
+      : `toggleLock('${lock.id}', ${lock.locked})`;
+    return `<div class="lock-row" data-id="${lock.id}">
+      <div class="lock-info">
+        <div class="lock-name">${lock.name || 'Lock ' + lock.id}</div>
+        <div class="lock-meta">
+          <span class="lock-online-dot" style="background:${onlineColor}" title="${lock.online ? 'Online' : 'Offline'}"></span>
+          <span class="lock-battery">
+            <span class="battery-bar"><span class="battery-fill" style="width:${lock.battery || 0}%;background:${bc}"></span></span>
+            ${lock.battery != null ? lock.battery + '%' : '--'}
+          </span>
+        </div>
+      </div>
+      <span class="lock-state ${stateClass}">${stateLabel}</span>
+      <button class="lock-btn ${btnClass}"
+              onclick="${btnAction}"
+              ${!lock.online ? 'disabled' : ''}>
+        ${btnLabel}
+      </button>
+      <button class="refresh-btn" onclick="refreshLock('${lock.id}')">CHECK</button>
+    </div>`;
+  }).join('');
+}
+
+async function fetchLocks() {
+  try {
+    const r = await fetch(API_BASE + '/api/locks/state');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    lockData = await r.json();
+    renderLocks();
+    document.getElementById('refresh-bar').textContent =
+      'Last updated: ' + new Date().toLocaleTimeString();
+  } catch (e) {
+    lockData.connected = false;
+    renderLocks();
+    document.getElementById('refresh-bar').textContent =
+      'Fetch failed: ' + e.message;
+  }
+}
+
+async function refreshLock(lockId) {
+  const row = document.querySelector(`.lock-row[data-id="${lockId}"]`);
+  const btn = row ? row.querySelector('.lock-btn') : null;
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  try {
+    await fetch(API_BASE + `/api/locks/${lockId}/refresh`, { method: 'POST' });
+  } catch (e) {
+    console.error('Refresh failed:', e);
+  }
+  await fetchLocks();
+}
+
+async function toggleLock(lockId, currentlyLocked) {
+  const action = currentlyLocked ? 'unlock' : 'lock';
+  const row = document.querySelector(`.lock-row[data-id="${lockId}"]`);
+  const btn = row ? row.querySelector('.lock-btn') : null;
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+  try {
+    const r = await fetch(API_BASE + `/api/locks/${lockId}/${action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+  } catch (e) {
+    console.error('Lock toggle failed:', e);
+  }
+  // Re-fetch state
+  await fetchLocks();
+}
+
+async function fetchActivity() {
+  try {
+    const r = await fetch(API_BASE + '/api/locks/activity');
+    if (!r.ok) return;
+    const data = await r.json();
+    const list = document.getElementById('activity-list');
+    if (!data.activities || data.activities.length === 0) {
+      list.innerHTML = '<div class="empty-state">No activity</div>';
+      return;
+    }
+    list.innerHTML = data.activities.slice(0, 10).map(a => {
+      const time = a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : '';
+      return `<div class="activity-item">
+        <span class="act-desc">${a.lockName || ''}: ${a.action || a.type || ''}</span>
+        <span class="act-time">${time}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    // Activity is optional, don't crash
+  }
+}
+
+// Boot
+fetchLocks();
+fetchActivity();
+
+// Poll every 30s
+setInterval(fetchLocks, 30000);
+setInterval(fetchActivity, 60000);
+</script>
+</body>
+</html>

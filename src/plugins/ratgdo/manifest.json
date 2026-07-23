@@ -1,0 +1,11 @@
+{
+  "id": "ratgdo",
+  "name": "ratgdo Garage Doors",
+  "version": "1.0.0",
+  "category": "gate",
+  "icon": "garage",
+  "description": "LiftMaster garage door open/close status and control via ratgdo MQTT",
+  "author": "MalamaOS",
+  "driver": "driver.ts",
+  "widget": "widget.html"
+}

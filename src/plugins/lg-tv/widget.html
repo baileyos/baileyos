@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LG webOS TV</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    color: #eceef3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .header h2 { color: #ffce6a; font-size: 18px; font-weight: 600; }
+  .tv-cards { display: flex; flex-direction: column; gap: 12px; }
+  .tv-card {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .tv-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .tv-name { color: #ffce6a; font-size: 15px; font-weight: 600; }
+  .tv-status { font-size: 11px; color: #666; }
+  .tv-status.connected { color: #22c55e; }
+
+  /* Power toggle */
+  .power-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(20, 22, 30, 0.9);
+    color: #666;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .power-btn.on {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: rgba(34,197,94,0.1);
+  }
+  .power-btn:hover { border-color: #ffce6a; }
+
+  /* Volume section */
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .control-label { font-size: 11px; color: #888; min-width: 50px; }
+  .volume-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.12);
+    outline: none;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #ffce6a;
+    cursor: pointer;
+  }
+  .volume-val { font-size: 13px; color: #ffce6a; min-width: 30px; text-align: right; }
+
+  /* Mute button */
+  .mute-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #999;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .mute-btn.muted {
+    background: rgba(239,68,68,0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+
+  /* Input selector */
+  .input-select {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #e0e0e0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    flex: 1;
+  }
+  .input-select option { background: #1a1a1a; color: #e0e0e0; }
+
+  /* App grid */
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .app-btn {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 10px 4px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 10px;
+    color: #aaa;
+  }
+  .app-btn:hover {
+    border-color: #ffce6a;
+    color: #ffce6a;
+    background: rgba(212,168,83,0.1);
+  }
+  .app-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+
+  /* Media controls */
+  .media-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: center;
+  }
+  .media-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .media-btn:hover {
+    border-color: #ffce6a;
+    color: #ffce6a;
+  }
+
+  .section-label {
+    font-size: 11px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+  .mock-notice {
+    text-align: center;
+    color: #f59e0b;
+    font-size: 13px;
+    padding: 20px;
+  }
+  /* header polish — dark glass bar (matches Audio/Lights) */
+  .header { background: rgba(20,22,30,0.82) !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 14px !important; padding: 12px 16px !important; }
+  .header h1, .header h2, .header .title { background: linear-gradient(90deg, #ffe6b0, #ffc64d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>LG webOS TV</h2>
+</div>
+<div id="content"></div>
+
+<script>
+  var content = document.getElementById('content');
+
+  // Common app shortcuts
+  var APPS = [
+    { id: 'netflix', name: 'Netflix', icon: '\uD83C\uDFAC' },
+    { id: 'youtube.leanback.v4', name: 'YouTube', icon: '\u25B6' },
+    { id: 'amazon', name: 'Prime', icon: '\uD83D\uDCE6' },
+    { id: 'com.hbo.hbomax', name: 'Max', icon: '\uD83C\uDFA5' },
+    { id: 'com.disney.disneyplus-prod', name: 'Disney+', icon: '\u2728' },
+    { id: 'com.apple.appletv', name: 'Apple TV', icon: '\uD83C\uDF4E' },
+    { id: 'com.hulu.plus', name: 'Hulu', icon: '\uD83D\uDCFA' },
+    { id: 'com.webos.app.livetv', name: 'Live TV', icon: '\uD83D\uDCE1' },
+  ];
+
+  var INPUTS = [
+    { id: 'HDMI_1', name: 'HDMI 1' },
+    { id: 'HDMI_2', name: 'HDMI 2' },
+    { id: 'HDMI_3', name: 'HDMI 3' },
+    { id: 'HDMI_4', name: 'HDMI 4' },
+    { id: 'COMP_1', name: 'AV' },
+  ];
+
+  function apiPost(endpoint, body) {
+    return fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function(r) { return r.json(); });
+  }
+
+  function renderTvs(data) {
+    if (data.mockMode || !data.tvs || data.tvs.length === 0) {
+      content.innerHTML = '<div class="mock-notice">No TVs configured (mock mode)</div>';
+      return;
+    }
+
+    var html = '<div class="tv-cards">';
+    data.tvs.forEach(function(tv) {
+      var connClass = tv.connected ? 'connected' : '';
+      var connLabel = tv.connected ? 'Connected' : 'Disconnected';
+      var powerClass = tv.connected ? ' on' : '';
+
+      html += '<div class="tv-card" data-id="' + tv.id + '">';
+
+      // Header: name + power
+      html += '<div class="tv-card-header">';
+      html += '<div><div class="tv-name">' + tv.name + '</div>';
+      html += '<div class="tv-status ' + connClass + '">' + connLabel + '</div></div>';
+      html += '<button class="power-btn' + powerClass + '" onclick="togglePower(\'' + tv.id + '\',' + !tv.connected + ')" title="Power">\u23FB</button>';
+      html += '</div>';
+
+      // Volume
+      html += '<div class="control-row">';
+      html += '<span class="control-label">Volume</span>';
+      html += '<input type="range" class="volume-slider" min="0" max="100" value="' + tv.volume + '" onchange="setVolume(\'' + tv.id + '\',this.value)" oninput="this.nextElementSibling.textContent=this.value">';
+      html += '<span class="volume-val">' + tv.volume + '</span>';
+      html += '<button class="mute-btn' + (tv.muted ? ' muted' : '') + '" onclick="toggleMute(\'' + tv.id + '\',' + !tv.muted + ')">' + (tv.muted ? '\uD83D\uDD07 Muted' : '\uD83D\uDD0A') + '</button>';
+      html += '</div>';
+
+      // Input selector
+      html += '<div class="control-row">';
+      html += '<span class="control-label">Input</span>';
+      html += '<select class="input-select" onchange="switchInput(\'' + tv.id + '\',this.value)">';
+      INPUTS.forEach(function(inp) {
+        var sel = tv.currentInput === inp.id ? ' selected' : '';
+        html += '<option value="' + inp.id + '"' + sel + '>' + inp.name + '</option>';
+      });
+      html += '</select>';
+      html += '</div>';
+
+      // App grid
+      html += '<div class="section-label">Apps</div>';
+      html += '<div class="app-grid">';
+      APPS.forEach(function(app) {
+        html += '<div class="app-btn" onclick="launchApp(\'' + tv.id + '\',\'' + app.id + '\')">';
+        html += '<span class="app-icon">' + app.icon + '</span>' + app.name;
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // Media controls
+      html += '<div class="media-controls">';
+      html += '<button class="media-btn" onclick="mediaCmd(\'' + tv.id + '\',\'rewind\')" title="Rewind">\u23EA</button>';
+      html += '<button class="media-btn" onclick="mediaCmd(\'' + tv.id + '\',\'play\')" title="Play">\u25B6</button>';
+      html += '<button class="media-btn" onclick="mediaCmd(\'' + tv.id + '\',\'pause\')" title="Pause">\u23F8</button>';
+      html += '<button class="media-btn" onclick="mediaCmd(\'' + tv.id + '\',\'stop\')" title="Stop">\u23F9</button>';
+      html += '<button class="media-btn" onclick="mediaCmd(\'' + tv.id + '\',\'forward\')" title="Forward">\u23E9</button>';
+      html += '</div>';
+
+      html += '</div>'; // tv-card
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  }
+
+  function togglePower(id, on) {
+    apiPost('/api/tv/power', { id: id, on: on }).then(fetchState);
+  }
+  function setVolume(id, level) {
+    apiPost('/api/tv/volume', { id: id, level: parseInt(level) });
+  }
+  function toggleMute(id, muted) {
+    apiPost('/api/tv/mute', { id: id, muted: muted }).then(fetchState);
+  }
+  function switchInput(id, inputId) {
+    apiPost('/api/tv/input', { id: id, inputId: inputId });
+  }
+  function launchApp(id, appId) {
+    apiPost('/api/tv/app', { id: id, appId: appId });
+  }
+  function mediaCmd(id, cmd) {
+    // Media control URIs
+    var uris = {
+      play: 'ssap://media.controls/play',
+      pause: 'ssap://media.controls/pause',
+      stop: 'ssap://media.controls/stop',
+      rewind: 'ssap://media.controls/rewind',
+      forward: 'ssap://media.controls/fastForward',
+    };
+    // Send raw command - route not defined but could be extended
+    fetch('/api/tv/state'); // placeholder
+  }
+
+  async function fetchState() {
+    try {
+      var res = await fetch('/api/tv/state');
+      var data = await res.json();
+      renderTvs(data);
+    } catch (e) {
+      content.innerHTML = '<div class="mock-notice">Connection error</div>';
+    }
+  }
+
+  fetchState();
+  setInterval(fetchState, 5000);
+</script>
+</body>
+</html>

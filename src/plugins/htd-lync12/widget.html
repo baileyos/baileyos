@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTD Lync 12 - Audio Control</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;  /* let the host dashboard's glass/photo background show through */
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background: rgba(20, 22, 30, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    background: linear-gradient(90deg, #ffe6b0, #ffc64d);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(212, 168, 83, 0.15);
+    color: #d4a853;
+  }
+  .status.connected { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+  .zone-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .zone-card {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  }
+  .zone-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.22); }
+  .zone-card.on {
+    background: linear-gradient(160deg, rgba(240,185,85,0.22), rgba(240,185,85,0.05)), rgba(20, 22, 30, 0.92);
+    border-color: rgba(240,185,85,0.55);
+    box-shadow: 0 6px 24px rgba(212,145,47,0.34), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .zone-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .zone-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #eceef3;
+  }
+  .zone-card.on .zone-name { color: #fff; }
+  .zone-number {
+    font-size: 10px;
+    font-weight: 700;
+    color: #f0b955;
+    margin-right: 6px;
+  }
+  /* Power Toggle */
+  .toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 11px;
+    transition: 0.3s;
+  }
+  .toggle .slider:before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background: #666;
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+  .toggle input:checked + .slider {
+    background: linear-gradient(90deg, #d4912f, #f0b955);
+    box-shadow: 0 0 12px rgba(240,185,85,0.5);
+  }
+  .toggle input:checked + .slider:before {
+    transform: translateX(18px);
+    background: #fff;
+  }
+  /* Controls */
+  .controls { display: flex; flex-direction: column; gap: 10px; }
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .control-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #b4bcc8;
+    min-width: 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .vol-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.14);
+    outline: none;
+  }
+  .vol-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe0a3, #f0b955 60%, #d4912f);
+    box-shadow: 0 2px 8px rgba(212,145,47,0.55);
+    cursor: pointer;
+  }
+  .vol-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe0a3, #f0b955 60%, #d4912f);
+    box-shadow: 0 2px 8px rgba(212,145,47,0.55);
+    cursor: pointer;
+    border: none;
+  }
+  .vol-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0b955;
+    min-width: 30px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Source Selector */
+  .source-select {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ccc;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    outline: none;
+  }
+  .source-select:focus { border-color: rgba(212, 168, 83, 0.5); }
+  /* Mute Button */
+  .mute-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #888;
+    padding: 4px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .mute-btn.muted {
+    background: rgba(220, 38, 38, 0.2);
+    border-color: rgba(220, 38, 38, 0.4);
+    color: #ef4444;
+  }
+  .mute-btn:hover { background: rgba(255, 255, 255, 0.12); }
+  /* Listen — streaming service tiles */
+  .listen { margin-bottom: 22px; }
+  .sec-label { display: inline-block; font-size: 12px; font-weight: 700; color: #ffce6a; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; background: rgba(20, 22, 30, 0.82); padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(240, 185, 85, 0.3); }
+  .svc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 10px; }
+  .svc-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 86px; padding: 14px; border-radius: 14px; cursor: pointer; border: none; color: #fff; background: linear-gradient(135deg, var(--svc), color-mix(in srgb, var(--svc) 64%, #000)); box-shadow: 0 4px 14px rgba(0,0,0,0.3); transition: transform 0.14s, box-shadow 0.14s; }
+  .svc-tile:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.45); }
+  .svc-tile:active { transform: scale(0.96); }
+  .svc-ic { font-size: 28px; line-height: 1; }
+  .svc-nm { font-size: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Audio</h1>
+  <span class="status" id="connStatus">Connecting...</span>
+</div>
+<div class="listen">
+  <div class="sec-label">Listen</div>
+  <div class="svc-grid" id="svc-grid"></div>
+</div>
+<div class="sec-label">Zones</div>
+<div class="zone-grid" id="zones"></div>
+
+<script>
+var SOURCE_NAMES = ['Source 1','Source 2','Source 3','Source 4','Source 5','Source 6'];
+
+// Listen — streaming services (matches the dashboard's brand-colored tiles)
+var SERVICES = [
+  { name: 'Spotify',     color: '#1DB954', icon: '&#127925;',        url: 'https://open.spotify.com' },
+  { name: 'SiriusXM',    color: '#0B0B3B', icon: '&#128225;',        url: 'https://www.siriusxm.com/player' },
+  { name: 'Pandora',     color: '#3668FF', icon: '&#128251;',        url: 'https://www.pandora.com/now-playing' },
+  { name: 'iHeartRadio', color: '#C6002B', icon: '&#10084;&#65039;', url: 'https://www.iheart.com' },
+  { name: 'Prime Music', color: '#00A8E1', icon: '&#127926;',        url: 'https://music.amazon.com' }
+];
+function launchService(url) { try { window.open(url, '_blank'); } catch (e) {} }
+function renderServices() {
+  var grid = document.getElementById('svc-grid');
+  if (!grid) return;
+  grid.innerHTML = SERVICES.map(function(s) {
+    return '<button class="svc-tile" style="--svc:' + s.color + '" onclick="launchService(\'' + s.url + '\')">' +
+           '<span class="svc-ic">' + s.icon + '</span><span class="svc-nm">' + s.name + '</span></button>';
+  }).join('');
+}
+renderServices();
+var zoneState = {};
+var volTimers = {};
+
+function render(zones) {
+  zoneState = {};
+  zones.forEach(function(z) { zoneState[z.zone] = z; });
+
+  var html = '';
+  zones.forEach(function(z) {
+    var onClass = z.power ? ' on' : '';
+    html += '<div class="zone-card' + onClass + '" id="zcard-' + z.zone + '">';
+    html += '<div class="zone-header">';
+    html += '<div><span class="zone-number">Z' + z.zone + '</span><span class="zone-name">' + z.name + '</span></div>';
+    html += '<label class="toggle"><input type="checkbox"' + (z.power ? ' checked' : '') + ' onchange="setPower(' + z.zone + ', this.checked)"><span class="slider"></span></label>';
+    html += '</div>';
+    html += '<div class="controls">';
+
+    // Volume
+    html += '<div class="control-row">';
+    html += '<span class="control-label">Volume</span>';
+    html += '<input type="range" class="vol-slider" min="0" max="60" value="' + z.volume + '" id="vol-' + z.zone + '" oninput="volLabel(' + z.zone + ', this.value)" onchange="setVolume(' + z.zone + ', this.value)">';
+    html += '<span class="vol-value" id="vollbl-' + z.zone + '">' + z.volume + '</span>';
+    html += '</div>';
+
+    // Source
+    html += '<div class="control-row">';
+    html += '<span class="control-label">Source</span>';
+    html += '<select class="source-select" id="src-' + z.zone + '" onchange="setSource(' + z.zone + ', this.value)">';
+    for (var i = 0; i < SOURCE_NAMES.length; i++) {
+      var sel = (z.source === (i + 1)) ? ' selected' : '';
+      html += '<option value="' + (i + 1) + '"' + sel + '>' + SOURCE_NAMES[i] + '</option>';
+    }
+    html += '</select>';
+
+    // Mute
+    html += '<button class="mute-btn' + (z.mute ? ' muted' : '') + '" id="mute-' + z.zone + '" onclick="toggleMute(' + z.zone + ')">' + (z.mute ? 'MUTED' : 'MUTE') + '</button>';
+    html += '</div>';
+
+    html += '</div></div>';
+  });
+  document.getElementById('zones').innerHTML = html;
+}
+
+function setPower(zone, on) {
+  fetch('/api/audio/zone/' + zone + '/power', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ on: on })
+  });
+}
+
+function volLabel(zone, val) {
+  var lbl = document.getElementById('vollbl-' + zone);
+  if (lbl) lbl.textContent = val;
+}
+
+function setVolume(zone, val) {
+  if (volTimers[zone]) clearTimeout(volTimers[zone]);
+  volTimers[zone] = setTimeout(function() {
+    fetch('/api/audio/zone/' + zone + '/volume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: parseInt(val) })
+    });
+  }, 150);
+}
+
+function setSource(zone, src) {
+  fetch('/api/audio/zone/' + zone + '/source', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: parseInt(src) })
+  });
+}
+
+function toggleMute(zone) {
+  var z = zoneState[zone];
+  if (!z) return;
+  var newMute = !z.mute;
+  fetch('/api/audio/zone/' + zone + '/mute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mute: newMute })
+  });
+}
+
+function updateZone(data) {
+  if (data.type !== 'zone') return;
+  zoneState[data.zone] = data;
+  var card = document.getElementById('zcard-' + data.zone);
+  if (!card) return;
+
+  if (data.power) { card.classList.add('on'); } else { card.classList.remove('on'); }
+  var cb = card.querySelector('input[type="checkbox"]');
+  if (cb) cb.checked = data.power;
+
+  var vol = document.getElementById('vol-' + data.zone);
+  if (vol) vol.value = data.volume;
+  var vollbl = document.getElementById('vollbl-' + data.zone);
+  if (vollbl) vollbl.textContent = data.volume;
+
+  var src = document.getElementById('src-' + data.zone);
+  if (src) src.value = data.source;
+
+  var muteBtn = document.getElementById('mute-' + data.zone);
+  if (muteBtn) {
+    if (data.mute) {
+      muteBtn.classList.add('muted');
+      muteBtn.textContent = 'MUTED';
+    } else {
+      muteBtn.classList.remove('muted');
+      muteBtn.textContent = 'MUTE';
+    }
+  }
+}
+
+// Initial load
+fetch('/api/audio/state')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var el = document.getElementById('connStatus');
+    if (data.connected) {
+      el.textContent = data.mock ? 'Mock Mode' : 'Connected';
+      el.classList.add('connected');
+    } else {
+      el.textContent = 'Disconnected';
+    }
+    render(data.zones || []);
+  })
+  .catch(function() {
+    document.getElementById('connStatus').textContent = 'Error';
+  });
+
+// SSE for live updates
+var evtSource = new EventSource('/api/htd-lync12/stream');
+evtSource.onmessage = function(e) {
+  try {
+    var data = JSON.parse(e.data);
+    updateZone(data);
+  } catch(err) {}
+};
+evtSource.onerror = function() {
+  document.getElementById('connStatus').textContent = 'SSE Lost';
+  document.getElementById('connStatus').classList.remove('connected');
+};
+</script>
+</body>
+</html>

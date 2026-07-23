@@ -1,0 +1,1 @@
+{   "id": "elk-m1",   "name": "ELK M1",   "version": "1.0.0",   "category": "security",   "icon": "shield",   "description": "ELK M1 security panel",   "author": "MalamaOS",   "discovery": { "network": { "ports": [2601] } },   "widget": "widget.html",   "driver": "driver.ts" }

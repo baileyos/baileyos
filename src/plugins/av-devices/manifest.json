@@ -1,0 +1,1 @@
+{   "id": "av-devices",   "name": "AV Devices",   "version": "1.0.0",   "category": "media",   "icon": "speaker",   "description": "Marantz/Denon receivers and AV equipment",   "author": "MalamaOS",   "discovery": { "network": { "ports": [23] } },   "widget": "widget.html",   "driver": "driver.ts" }

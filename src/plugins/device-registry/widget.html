@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 16px; }
+  .card { background: #16213e; border: 1px solid #d4a537; border-radius: 12px; padding: 20px; max-width: 440px; }
+  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .header h2 { color: #d4a537; font-size: 18px; }
+  .icon { font-size: 24px; }
+  .device-count { color: #888; font-size: 13px; margin-bottom: 12px; }
+  .device { background: #1a1a2e; border: 1px solid #333; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .device-name { font-weight: 600; font-size: 14px; color: #e0e0e0; }
+  .device-ip { color: #d4a537; font-size: 12px; margin-top: 2px; }
+  .device-meta { color: #888; font-size: 11px; margin-top: 6px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+  .badge.granted { background: #064e3b; color: #34d399; }
+  .badge.denied { background: #7f1d1d; color: #fca5a5; }
+  .remove-btn { background: #7f1d1d; color: #fca5a5; border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; margin-top: 8px; }
+  .remove-btn:hover { background: #991b1b; }
+  .empty { color: #666; font-style: italic; padding: 16px 0; text-align: center; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <span class="icon">&#128241;</span>
+      <h2>Device Registry</h2>
+    </div>
+    <div id="count" class="device-count">0 devices registered</div>
+    <div id="device-list"></div>
+  </div>
+
+  <script>
+    async function refresh() {
+      try {
+        const res = await fetch('/api/devices/state');
+        const s = await res.json();
+        document.getElementById('count').textContent = s.deviceCount + ' device' + (s.deviceCount !== 1 ? 's' : '') + ' registered';
+        const list = document.getElementById('device-list');
+        if (!s.devices || s.devices.length === 0) {
+          list.innerHTML = '<div class="empty">No devices registered</div>';
+          return;
+        }
+        list.innerHTML = s.devices.map(d => `
+          <div class="device">
+            <div>
+              <span class="device-name">${esc(d.deviceName)}</span>
+              <span class="badge ${d.cameraGranted ? 'granted' : 'denied'}">${d.cameraGranted ? 'Camera OK' : 'No Camera'}</span>
+            </div>
+            <div class="device-ip">${esc(d.tailscaleIp)}</div>
+            <div class="device-meta">
+              Last seen: ${new Date(d.lastSeen).toLocaleString()}<br>
+              Last user: ${esc(d.lastUser || '--')} | Identifies: ${d.identifyCount}
+            </div>
+            <button class="remove-btn" onclick="removeDevice('${esc(d.tailscaleIp)}')">Remove</button>
+          </div>
+        `).join('');
+      } catch {}
+    }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    async function removeDevice(ip) {
+      await fetch('/api/devices/remove', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({tailscaleIp: ip}) });
+      refresh();
+    }
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

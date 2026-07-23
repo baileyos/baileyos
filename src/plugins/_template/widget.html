@@ -1,0 +1,329 @@
+<!--
+  ── BaileyOS Dashboard Widget Template ─────────────────────────────
+  This HTML file is loaded into the dashboard as an iframe or web
+  component. It receives state updates via SSE and sends commands
+  back to the plugin's API routes.
+
+  Key conventions:
+  - PLUGIN_ID is replaced at load time with your manifest's "id" value.
+  - The SSE endpoint is /api/sse (server-sent events for live state).
+  - API calls go to /api/plugins/PLUGIN_ID/<route>.
+  - Keep widgets self-contained: all CSS and JS in this one file.
+  - Use the BaileyOS color variables for consistent theming.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Device Widget</title>
+  <style>
+    /* ── BaileyOS Theme Variables ──────────────────────────────────
+       These match the main dashboard theme. Use them to keep your
+       widget visually consistent. */
+    :root {
+      --bailey-bg: #0F172A;
+      --bailey-card: #1E293B;
+      --bailey-border: #334155;
+      --bailey-cyan: #22D3EE;
+      --bailey-sky: #38BDF8;
+      --bailey-teal: #0891B2;
+      --bailey-text: #F1F5F9;
+      --bailey-muted: #94A3B8;
+      --bailey-success: #22C55E;
+      --bailey-error: #EF4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bailey-card);
+      color: var(--bailey-text);
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    /* ── Widget Card Layout ────────────────────────────────────── */
+    .widget-card {
+      background: var(--bailey-bg);
+      border: 1px solid var(--bailey-border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .widget-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--bailey-text);
+    }
+
+    /* ── Status Indicator ──────────────────────────────────────── */
+    /* Shows a colored dot: green = online, red = error, gray = offline */
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-dot.online  { background: var(--bailey-success); }
+    .status-dot.offline { background: var(--bailey-muted); }
+    .status-dot.error   { background: var(--bailey-error); }
+
+    .status-text {
+      font-size: 13px;
+      color: var(--bailey-muted);
+      display: flex;
+      align-items: center;
+    }
+
+    /* ── Controls ──────────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-label {
+      font-size: 14px;
+      color: var(--bailey-muted);
+    }
+
+    /* Power toggle button */
+    .btn-power {
+      padding: 8px 20px;
+      border: 1px solid var(--bailey-border);
+      border-radius: 8px;
+      background: var(--bailey-card);
+      color: var(--bailey-text);
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn-power:hover {
+      border-color: var(--bailey-cyan);
+      color: var(--bailey-cyan);
+    }
+    .btn-power.on {
+      background: var(--bailey-teal);
+      border-color: var(--bailey-cyan);
+      color: white;
+    }
+
+    /* Brightness slider */
+    .slider {
+      -webkit-appearance: none;
+      width: 140px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--bailey-border);
+      outline: none;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bailey-cyan);
+      cursor: pointer;
+    }
+
+    .brightness-value {
+      font-size: 14px;
+      color: var(--bailey-cyan);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* ── Last Seen Footer ──────────────────────────────────────── */
+    .widget-footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--bailey-border);
+      font-size: 12px;
+      color: var(--bailey-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="widget-card">
+    <!-- Header: plugin name + status indicator -->
+    <div class="widget-header">
+      <span class="widget-title">My Device</span>
+      <span class="status-text">
+        <span id="statusDot" class="status-dot offline"></span>
+        <span id="statusLabel">Offline</span>
+      </span>
+    </div>
+
+    <!-- Controls: power toggle + brightness slider -->
+    <div class="controls">
+      <!-- Power Toggle -->
+      <div class="control-row">
+        <span class="control-label">Power</span>
+        <button id="btnPower" class="btn-power" onclick="togglePower()">OFF</button>
+      </div>
+
+      <!-- Brightness Slider -->
+      <div class="control-row">
+        <span class="control-label">Brightness</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input
+            id="brightnessSlider"
+            type="range"
+            class="slider"
+            min="0"
+            max="100"
+            value="0"
+            oninput="updateBrightnessLabel(this.value)"
+            onchange="setBrightness(this.value)"
+          />
+          <span id="brightnessValue" class="brightness-value">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer: last seen timestamp -->
+    <div class="widget-footer">
+      Last seen: <span id="lastSeen">--</span>
+    </div>
+  </div>
+
+  <script>
+    // ── Configuration ──────────────────────────────────────────────
+    // PLUGIN_ID is injected by the dashboard loader at runtime.
+    // During development, replace with your plugin's actual id.
+    const PLUGIN_ID = 'my-device';
+    const API_BASE = `/api/plugins/${PLUGIN_ID}`;
+
+    // ── SSE: Live State Updates ────────────────────────────────────
+    // Connect to the BaileyOS SSE stream to receive real-time state
+    // changes without polling. The server sends events namespaced by
+    // plugin id, so we filter for ours.
+    function connectSSE() {
+      const evtSource = new EventSource('/api/sse');
+
+      evtSource.addEventListener(PLUGIN_ID, (event) => {
+        // Each SSE event contains the full device state as JSON.
+        const state = JSON.parse(event.data);
+        updateUI(state);
+      });
+
+      evtSource.onerror = () => {
+        // SSE disconnected -- the browser will auto-reconnect.
+        console.warn('[Widget] SSE connection lost, reconnecting...');
+      };
+    }
+
+    // ── Update the UI with new state ───────────────────────────────
+    function updateUI(state) {
+      // Status dot
+      const dot = document.getElementById('statusDot');
+      const label = document.getElementById('statusLabel');
+      dot.className = `status-dot ${state.status}`;
+      label.textContent = state.status.charAt(0).toUpperCase() + state.status.slice(1);
+
+      // Power button
+      const btn = document.getElementById('btnPower');
+      btn.textContent = state.power ? 'ON' : 'OFF';
+      btn.classList.toggle('on', state.power);
+
+      // Brightness
+      document.getElementById('brightnessSlider').value = state.brightness;
+      document.getElementById('brightnessValue').textContent = `${state.brightness}%`;
+
+      // Last seen
+      if (state.lastSeen) {
+        const d = new Date(state.lastSeen);
+        document.getElementById('lastSeen').textContent = d.toLocaleTimeString();
+      }
+    }
+
+    // ── API Calls ──────────────────────────────────────────────────
+    // These send commands to the plugin's HTTP routes defined in
+    // driver.ts getRoutes(). The api-router mounts them under
+    // /api/plugins/<plugin-id>/.
+
+    // Toggle the device power on or off.
+    async function togglePower() {
+      const btn = document.getElementById('btnPower');
+      const newPower = btn.textContent === 'OFF';
+
+      try {
+        const res = await fetch(`${API_BASE}/power`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ power: newPower }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          btn.textContent = data.power ? 'ON' : 'OFF';
+          btn.classList.toggle('on', data.power);
+        }
+      } catch (err) {
+        console.error('[Widget] Power toggle failed:', err);
+      }
+    }
+
+    // Update the brightness label as the slider moves (before release).
+    function updateBrightnessLabel(value) {
+      document.getElementById('brightnessValue').textContent = `${value}%`;
+    }
+
+    // Send the brightness level when the slider is released.
+    async function setBrightness(level) {
+      try {
+        const res = await fetch(`${API_BASE}/brightness`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ level: parseInt(level) }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          console.error('[Widget] Brightness set failed:', data.error);
+        }
+      } catch (err) {
+        console.error('[Widget] Brightness request failed:', err);
+      }
+    }
+
+    // ── Initial Load ───────────────────────────────────────────────
+    // Fetch current state on page load, then connect SSE for updates.
+    async function initialize() {
+      try {
+        const res = await fetch(`${API_BASE}/status`);
+        const state = await res.json();
+        updateUI(state);
+      } catch (err) {
+        console.warn('[Widget] Initial fetch failed, waiting for SSE...');
+      }
+
+      connectSSE();
+    }
+
+    // Start when the DOM is ready.
+    document.addEventListener('DOMContentLoaded', initialize);
+  </script>
+
+</body>
+</html>

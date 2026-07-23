@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zone Editor — Bailey Cameras</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0d0f14;
+  color: #eceef3;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Top bar ── */
+.topbar {
+  background: rgba(20,22,30,0.97);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.topbar h1 { color: #ffce6a; font-size: 16px; font-weight: 700; white-space: nowrap; }
+.cam-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.cam-tab {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #999;
+  padding: 5px 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.cam-tab.active { background: rgba(255,206,106,0.18); border-color: #ffce6a; color: #ffce6a; }
+.cam-tab:hover:not(.active) { border-color: rgba(255,255,255,0.25); color: #ccc; }
+.topbar-spacer { flex: 1; }
+
+/* ── Main layout ── */
+.main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+/* ── Canvas area ── */
+.canvas-area {
+  flex: 1;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  min-width: 0;
+}
+#bgImg {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#drawCanvas {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.hint {
+  position: absolute; bottom: 14px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.78);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s;
+  z-index: 10;
+}
+.hint.show { opacity: 1; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  background: #0f1119;
+  border-left: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sb-head {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.sb-head h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #666; }
+.zone-count { font-size: 11px; color: #555; }
+
+/* Zone list */
+.zone-list { flex: 1; overflow-y: auto; padding: 6px; min-height: 0; }
+.zone-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 9px 10px 9px 12px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+.zone-item:hover { border-color: rgba(255,255,255,0.18); }
+.zone-item.sel { border-color: #ffce6a; background: rgba(255,206,106,0.07); }
+.zone-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.zone-info { flex: 1; min-width: 0; }
+.zone-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zone-meta { font-size: 10px; color: #666; margin-top: 2px; }
+.zone-del {
+  background: none; border: none; color: #444; cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 2px 4px; border-radius: 4px;
+  flex-shrink: 0; transition: all 0.15s;
+}
+.zone-del:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
+.empty-msg { color: #444; font-size: 12px; padding: 10px 6px; }
+
+/* Draw form */
+.draw-form {
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex-shrink: 0;
+}
+.draw-form h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #666; margin-bottom: 2px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #eee;
+  padding: 7px 9px;
+  border-radius: 6px;
+  font-size: 13px;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus { outline: none; border-color: #ffce6a; }
+.field select option { background: #1a1c24; }
+.field.hidden { display: none; }
+
+/* Color picker */
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.sw {
+  width: 22px; height: 22px; border-radius: 50%;
+  cursor: pointer; border: 2px solid transparent;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.sw.picked { border-color: #fff; transform: scale(1.25); box-shadow: 0 0 6px rgba(255,255,255,0.3); }
+
+/* Buttons */
+.btn {
+  padding: 8px 14px; border-radius: 7px; cursor: pointer;
+  font-size: 13px; font-weight: 600; border: 1px solid;
+  transition: all 0.15s; width: 100%; text-align: center;
+  background: none;
+}
+.btn-gold { border-color: #ffce6a; color: #ffce6a; }
+.btn-gold:hover { background: rgba(255,206,106,0.15); }
+.btn-gold:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-muted { border-color: rgba(255,255,255,0.15); color: #999; }
+.btn-muted:hover { background: rgba(255,255,255,0.07); }
+.btn-green { border-color: #22c55e; color: #22c55e; }
+.btn-green:hover { background: rgba(34,197,94,0.12); }
+.btn-green:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Status bar ── */
+.statusbar {
+  background: rgba(20,22,30,0.95);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 7px 16px;
+  font-size: 11px;
+  color: #666;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 40px; left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: rgba(34,197,94,0.92);
+  color: #fff; padding: 9px 20px;
+  border-radius: 8px; font-size: 13px; font-weight: 600;
+  z-index: 9999; opacity: 0; transition: all 0.25s; pointer-events: none;
+}
+.toast.err { background: rgba(239,68,68,0.92); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Crop mode overlay */
+.crop-overlay {
+  position: absolute; inset: 0; pointer-events: none; z-index: 5;
+}
+.btn-crop-active { border-color: #f59e0b !important; color: #f59e0b !important; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Zone Editor</h1>
+  <div class="cam-tabs" id="camTabs"></div>
+  <div class="topbar-spacer"></div>
+  <button class="btn btn-muted" id="btnEnhance" style="width:auto;padding:6px 12px" title="Boost brightness for dark cameras">☀ Enhance</button>
+  <button class="btn btn-muted" id="btnSetCrop" style="width:auto;padding:6px 12px" title="Draw a rectangle to zoom in for this camera">📐 Set Crop</button>
+  <button class="btn btn-muted" id="btnClearCrop" style="width:auto;padding:6px 12px;display:none" title="Remove digital zoom for this camera">✕ Crop</button>
+  <button class="btn btn-muted" id="btnRefresh" style="width:auto;padding:6px 12px">↻ Snap</button>
+  <button class="btn btn-green" id="btnSave" style="width:auto;padding:6px 16px">Save All Zones</button>
+</div>
+
+<div class="main">
+  <div class="canvas-area" id="canvasArea">
+    <img id="bgImg" alt="Camera snapshot" draggable="false">
+    <canvas id="drawCanvas"></canvas>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sb-head">
+      <h3>Zones</h3>
+      <span class="zone-count" id="zoneCount">0 zones</span>
+    </div>
+    <div class="zone-list" id="zoneList">
+      <div class="empty-msg">No zones on this camera yet.</div>
+    </div>
+
+    <div class="draw-form" id="drawForm">
+      <h3>Add Zone</h3>
+      <div class="field">
+        <label>Zone Name</label>
+        <input type="text" id="zoneName" placeholder="e.g. Driveway Entry">
+      </div>
+      <div class="field">
+        <label>Zone Type</label>
+        <select id="zoneType">
+          <option value="checkpoint">Vehicle Checkpoint</option>
+          <option value="garage-door">Garage Door State</option>
+          <option value="detection">General Detection</option>
+        </select>
+      </div>
+      <div class="field" id="orderField">
+        <label>Checkpoint # (order vehicles must pass)</label>
+        <input type="number" id="checkpointOrder" min="1" max="20" value="1">
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <div class="swatches" id="swatches"></div>
+      </div>
+      <button class="btn btn-gold" id="btnDraw">+ Draw Zone</button>
+      <button class="btn btn-muted" id="btnCancel" style="display:none">✕ Cancel Drawing</button>
+    </div>
+  </div>
+</div>
+
+<div class="statusbar" id="statusBar">Select a camera tab above, then click + Draw Zone to start drawing a polygon.</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PALETTE = ['#22c55e','#3b82f6','#f59e0b','#ef4444','#a855f7','#06b6d4','#f97316','#ec4899'];
+let CAM_LABELS = { '1':'Cam 1','2':'Cam 2','3':'Cam 3','4':'Cam 4','5':'Cam 5','6':'Cam 6','7':'Cam 7','8':'Cam 8' };
+
+let zones = {};         // { "1": [ZoneObj, ...], "2": [...] }
+let cam = '1';          // active camera
+let drawing = false;
+let draftPts = [];      // [{x,y}] normalised 0-1 while drawing
+let selId = null;       // selected zone id
+let hovId = null;
+let cropMode = false;
+let cropAnchor = null;   // {x,y} canvas pixels where drag started
+let cropCurrent = null;  // {x,y} canvas pixels current drag pos
+let digitalZoom = {};    // { "8": { x, y, w, h } } — full-frame normalized
+let color = PALETTE[0];
+
+const bgImg      = document.getElementById('bgImg');
+const canvas     = document.getElementById('drawCanvas');
+const ctx        = canvas.getContext('2d');
+const hint       = document.getElementById('hint');
+const statusBar  = document.getElementById('statusBar');
+const zoneList   = document.getElementById('zoneList');
+const camTabs    = document.getElementById('camTabs');
+const zoneCount  = document.getElementById('zoneCount');
+const btnDraw    = document.getElementById('btnDraw');
+const btnCancel  = document.getElementById('btnCancel');
+const btnSave    = document.getElementById('btnSave');
+const btnRefresh = document.getElementById('btnRefresh');
+const zoneNameEl = document.getElementById('zoneName');
+const zoneTypeEl = document.getElementById('zoneType');
+const orderField = document.getElementById('orderField');
+const orderEl    = document.getElementById('checkpointOrder');
+const swatchesEl = document.getElementById('swatches');
+
+// ── Color swatches ──
+PALETTE.forEach(c => {
+  const s = document.createElement('div');
+  s.className = 'sw' + (c === color ? ' picked' : '');
+  s.style.background = c;
+  s.onclick = () => { color = c; swatchesEl.querySelectorAll('.sw').forEach(x => x.classList.remove('picked')); s.classList.add('picked'); };
+  swatchesEl.appendChild(s);
+});
+
+zoneTypeEl.addEventListener('change', () => {
+  orderField.classList.toggle('hidden', zoneTypeEl.value !== 'checkpoint');
+});
+
+// ── Camera tabs ──
+function buildTabs() {
+  camTabs.innerHTML = '';
+  const cams = new Set(Object.keys(CAM_LABELS));
+  Object.keys(zones).forEach(k => cams.add(k));
+  [...cams].sort((a,b) => parseInt(a)-parseInt(b)).forEach(n => {
+    const btn = document.createElement('button');
+    btn.className = 'cam-tab' + (n === cam ? ' active' : '');
+    const cnt = (zones[n] || []).length;
+    btn.textContent = CAM_LABELS[n] || 'Cam '+n;
+    if (cnt) btn.textContent += ' ('+cnt+')';
+    btn.onclick = () => { cam = n; selId = null; drawing = false; draftPts = []; cropMode = false; cropAnchor = null; cropCurrent = null; buildTabs(); loadSnap(); redraw(); renderList(); updateCropButtons(); };
+    camTabs.appendChild(btn);
+  });
+}
+
+// ── Snapshot ──
+function loadSnap() {
+  bgImg.onload = () => { resizeCanvas(); redraw(); };
+  bgImg.onerror = () => { status('No snapshot for Camera ' + cam); };
+  bgImg.src = '/api/cameras/snapshot/' + cam + '?t=' + Date.now();
+}
+
+// ── Canvas resize ──
+function resizeCanvas() {
+  const r = document.getElementById('canvasArea').getBoundingClientRect();
+  canvas.width = r.width;
+  canvas.height = r.height;
+  redraw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ── Image rect (object-fit:contain) ──
+function imgRect() {
+  const aW = canvas.width, aH = canvas.height;
+  const iW = bgImg.naturalWidth || aW, iH = bgImg.naturalHeight || aH;
+  const sc = Math.min(aW/iW, aH/iH);
+  const w = iW*sc, h = iH*sc;
+  return { x:(aW-w)/2, y:(aH-h)/2, w, h };
+}
+function n2c(nx, ny) {
+  if (digitalZoom[cam]) {
+    return { x: nx * canvas.width, y: ny * canvas.height };
+  }
+  const r = imgRect();
+  return { x: r.x + nx * r.w, y: r.y + ny * r.h };
+}
+function c2n(cx, cy) {
+  if (digitalZoom[cam]) {
+    return { x: cx / canvas.width, y: cy / canvas.height };
+  }
+  const r = imgRect();
+  return { x: (cx - r.x) / r.w, y: (cy - r.y) / r.h };
+}
+function mouse(e) { const r = canvas.getBoundingClientRect(); return { x:e.clientX-r.left, y:e.clientY-r.top }; }
+
+// ── Render ──
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const crop = digitalZoom[cam];
+
+  // Draw background: full image or cropped region
+  if (crop && bgImg.complete && bgImg.naturalWidth > 0) {
+    bgImg.style.opacity = '0';  // hide the underlying img; we draw crop on canvas
+    const iW = bgImg.naturalWidth, iH = bgImg.naturalHeight;
+    ctx.drawImage(bgImg,
+      crop.x * iW, crop.y * iH, crop.w * iW, crop.h * iH,
+      0, 0, canvas.width, canvas.height);
+  } else {
+    bgImg.style.opacity = '';
+  }
+
+  const list = zones[cam] || [];
+
+  list.forEach(z => {
+    if (!z.points || z.points.length < 2) return;
+    const pts = z.points.map(p => n2c(p[0], p[1]));
+    const isSel = z.id === selId, isHov = z.id === hovId;
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.closePath();
+    ctx.fillStyle = hexA(z.color, isSel ? 0.35 : isHov ? 0.22 : 0.14);
+    ctx.fill();
+    ctx.strokeStyle = z.color;
+    ctx.lineWidth = isSel ? 2.5 : isHov ? 2 : 1.5;
+    ctx.setLineDash([]);
+    ctx.stroke();
+
+    if (isSel) {
+      pts.forEach(p => {
+        ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+        ctx.fillStyle = z.color; ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+      });
+    }
+
+    const cx = pts.reduce((s,p)=>s+p.x,0)/pts.length;
+    const cy = pts.reduce((s,p)=>s+p.y,0)/pts.length;
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillText(z.name, cx+1, cy+1);
+    ctx.fillStyle = z.color;
+    ctx.fillText(z.name, cx, cy);
+    if (z.type === 'checkpoint' && z.order) {
+      ctx.font = 'bold 10px system-ui';
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillText('CP'+z.order, cx+1, cy+15);
+      ctx.fillStyle = '#fff'; ctx.fillText('CP'+z.order, cx, cy+14);
+    }
+  });
+
+  // Draft polygon
+  if (drawing && draftPts.length > 0) {
+    const pts = draftPts.map(p => n2c(p[0], p[1]));
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
+
+    pts.forEach((p, i) => {
+      ctx.beginPath(); ctx.arc(p.x, p.y, i===0 ? 8 : 5, 0, Math.PI*2);
+      ctx.fillStyle = i===0 ? '#fff' : color; ctx.fill();
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+    });
+
+    setHint(draftPts.length < 3
+      ? 'Click to place vertices — need at least 3'
+      : 'Click white dot (or press Enter) to close · Esc to cancel');
+  } else {
+    clearHint();
+  }
+
+  // Crop drag preview
+  if (cropMode && cropAnchor && cropCurrent) {
+    const x = Math.min(cropAnchor.x, cropCurrent.x);
+    const y = Math.min(cropAnchor.y, cropCurrent.y);
+    const w = Math.abs(cropCurrent.x - cropAnchor.x);
+    const h = Math.abs(cropCurrent.y - cropAnchor.y);
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]); ctx.strokeRect(x, y, w, h); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(245,158,11,0.08)'; ctx.fillRect(x, y, w, h);
+  }
+
+  // Show crop boundary when not in crop mode
+  if (!cropMode && digitalZoom[cam]) {
+    ctx.strokeStyle = 'rgba(245,158,11,0.5)'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]); ctx.strokeRect(1, 1, canvas.width-2, canvas.height-2); ctx.setLineDash([]);
+  }
+}
+
+// ── Helpers ──
+function hexA(hex, a) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function pointInPoly(px, py, pts) {
+  if (!pts || pts.length < 3) return false;
+  let inside = false;
+  for (let i=0, j=pts.length-1; i<pts.length; j=i++) {
+    const [xi,yi]=pts[i], [xj,yj]=pts[j];
+    if (((yi>py)!==(yj>py)) && px<(xj-xi)*(py-yi)/(yj-yi)+xi) inside=!inside;
+  }
+  return inside;
+}
+function uid() { return 'z' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function updateCropButtons() {
+  const hasCrop = !!digitalZoom[cam];
+  document.getElementById('btnClearCrop').style.display = hasCrop ? '' : 'none';
+}
+async function saveCrop() {
+  try {
+    const r = await fetch('/api/cameras/digital-zoom', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(digitalZoom),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+  } catch(e) { showToast('Crop save failed: ' + e.message, true); }
+}
+function setHint(t) { hint.textContent=t; hint.classList.add('show'); }
+function clearHint() { hint.classList.remove('show'); }
+function status(t) { statusBar.textContent = t; }
+
+// ── Zone list ──
+function renderList() {
+  const list = zones[cam] || [];
+  const count = list.length;
+  zoneCount.textContent = count + (count===1?' zone':' zones');
+  if (!count) { zoneList.innerHTML = '<div class="empty-msg">No zones on this camera yet.</div>'; return; }
+  zoneList.innerHTML = '';
+  list.forEach(z => {
+    const item = document.createElement('div');
+    item.className = 'zone-item' + (z.id===selId?' sel':'');
+    const typeLbl = z.type==='checkpoint' ? '🚗 CP'+z.order : z.type==='garage-door' ? '🚪 Garage' : '⬡ Detection';
+    item.innerHTML = `
+      <div class="zone-swatch" style="background:${z.color}"></div>
+      <div class="zone-info">
+        <div class="zone-name">${z.name}</div>
+        <div class="zone-meta">${typeLbl} · ${z.points.length} pts</div>
+      </div>
+      <button class="zone-del" data-id="${z.id}" title="Delete">×</button>`;
+    item.querySelector('.zone-del').addEventListener('click', e => {
+      e.stopPropagation();
+      const id = e.currentTarget.getAttribute('data-id');
+      if (!confirm('Delete zone "'+z.name+'"?')) return;
+      zones[cam] = (zones[cam]||[]).filter(x=>x.id!==id);
+      if (selId===id) selId=null;
+      renderList(); buildTabs(); redraw();
+    });
+    item.addEventListener('click', () => { selId = selId===z.id ? null : z.id; renderList(); redraw(); });
+    item.addEventListener('mouseenter', () => { hovId=z.id; redraw(); });
+    item.addEventListener('mouseleave', () => { hovId=null; redraw(); });
+    zoneList.appendChild(item);
+  });
+}
+
+// ── Canvas events ──
+canvas.addEventListener('click', e => {
+  const pos = mouse(e);
+  if (!drawing) {
+    const norm = c2n(pos.x, pos.y);
+    const list = zones[cam] || [];
+    let hit = null;
+    for (let i=list.length-1; i>=0; i--) {
+      if (pointInPoly(norm.x, norm.y, list[i].points)) { hit=list[i].id; break; }
+    }
+    selId = hit; renderList(); redraw(); return;
+  }
+
+  const norm = c2n(pos.x, pos.y);
+  if (norm.x<0||norm.x>1||norm.y<0||norm.y>1) return;
+
+  // Close polygon if clicking near first vertex
+  if (draftPts.length >= 3) {
+    const fp = n2c(draftPts[0][0], draftPts[0][1]);
+    const dx=pos.x-fp.x, dy=pos.y-fp.y;
+    if (Math.sqrt(dx*dx+dy*dy)<14) { commitZone(); return; }
+  }
+  draftPts.push([norm.x, norm.y]);
+  redraw();
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!drawing) {
+    const norm = c2n(mouse(e).x, mouse(e).y);
+    const list = zones[cam]||[];
+    let h=null;
+    for (let i=list.length-1;i>=0;i--) { if(pointInPoly(norm.x,norm.y,list[i].points)){h=list[i].id;break;} }
+    if (h!==hovId) { hovId=h; redraw(); }
+    return;
+  }
+  // Rubber-band line
+  redraw();
+  if (!draftPts.length) return;
+  const pos = mouse(e);
+  const last = n2c(draftPts[draftPts.length-1][0], draftPts[draftPts.length-1][1]);
+  ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(pos.x,pos.y);
+  ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+  // Snap ring near first vertex
+  if (draftPts.length>=3) {
+    const fp = n2c(draftPts[0][0], draftPts[0][1]);
+    if (Math.hypot(pos.x-fp.x, pos.y-fp.y)<20) {
+      ctx.beginPath(); ctx.arc(fp.x,fp.y,14,0,Math.PI*2);
+      ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+});
+
+canvas.addEventListener('pointerdown', e => {
+  if (!cropMode) return;
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  cropAnchor = { x: e.clientX - r.left, y: e.clientY - r.top };
+  cropCurrent = null;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!cropMode || !cropAnchor) return;
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  cropCurrent = { x: e.clientX - r.left, y: e.clientY - r.top };
+  redraw();
+});
+canvas.addEventListener('pointerup', async e => {
+  if (!cropMode || !cropAnchor || !cropCurrent) return;
+  e.preventDefault();
+  // Convert to full-frame normalized coords using imgRect (crop not active yet)
+  const r = imgRect();
+  const x1n = (Math.min(cropAnchor.x, cropCurrent.x) - r.x) / r.w;
+  const y1n = (Math.min(cropAnchor.y, cropCurrent.y) - r.y) / r.h;
+  const x2n = (Math.max(cropAnchor.x, cropCurrent.x) - r.x) / r.w;
+  const y2n = (Math.max(cropAnchor.y, cropCurrent.y) - r.y) / r.h;
+  const newCrop = {
+    x: Math.max(0, x1n),
+    y: Math.max(0, y1n),
+    w: Math.min(1, x2n) - Math.max(0, x1n),
+    h: Math.min(1, y2n) - Math.max(0, y1n),
+  };
+  cropAnchor = null; cropCurrent = null; cropMode = false;
+  document.getElementById('btnSetCrop').classList.remove('btn-crop-active');
+  if (newCrop.w > 0.03 && newCrop.h > 0.03) {
+    const hadZones = (zones[cam] || []).length > 0;
+    digitalZoom[cam] = newCrop;
+    await saveCrop();
+    updateCropButtons();
+    if (hadZones) {
+      if (confirm('Crop set. Existing zones for this camera use full-frame coordinates. Clear them so you can redraw in the zoomed view?')) {
+        zones[cam] = [];
+        renderList(); buildTabs();
+      }
+    }
+    redraw();
+    status('Crop saved. Redraw your zones in the zoomed view for best detection accuracy.');
+  } else {
+    status('Crop too small — try again.');
+    redraw();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { cancelDraw(); }
+  if (e.key==='Enter' && drawing && draftPts.length>=3) { commitZone(); }
+  if ((e.key==='Delete'||e.key==='Backspace') && selId && !drawing) {
+    const z = (zones[cam]||[]).find(x=>x.id===selId);
+    if (z && confirm('Delete "'+z.name+'"?')) {
+      zones[cam]=(zones[cam]||[]).filter(x=>x.id!==selId);
+      selId=null; renderList(); buildTabs(); redraw();
+    }
+  }
+});
+
+// ── Draw controls ──
+btnDraw.addEventListener('click', () => {
+  const name = zoneNameEl.value.trim();
+  if (!name) { zoneNameEl.focus(); zoneNameEl.style.borderColor='#ef4444'; setTimeout(()=>zoneNameEl.style.borderColor='',1500); return; }
+  drawing=true; draftPts=[];
+  btnDraw.style.display='none'; btnCancel.style.display='';
+  status('Drawing "'+name+'" on Camera '+cam+' — click to place vertices, then click white dot or Enter to finish');
+  redraw();
+});
+btnCancel.addEventListener('click', cancelDraw);
+
+function cancelDraw() {
+  drawing=false; draftPts=[];
+  btnDraw.style.display=''; btnCancel.style.display='none';
+  clearHint(); status('Drawing cancelled.'); redraw();
+}
+
+function commitZone() {
+  if (draftPts.length<3) return;
+  const name = zoneNameEl.value.trim()||'Zone';
+  const type = zoneTypeEl.value;
+  const order = parseInt(orderEl.value)||1;
+  const z = { id:uid(), name, type, order:type==='checkpoint'?order:undefined, color, points:[...draftPts] };
+  if (!zones[cam]) zones[cam]=[];
+  zones[cam].push(z);
+  drawing=false; draftPts=[];
+  selId=z.id;
+  btnDraw.style.display=''; btnCancel.style.display='none';
+  clearHint(); renderList(); buildTabs(); redraw();
+  status('"'+name+'" added to Camera '+cam+'. Draw another or Save All Zones.');
+  if (type==='checkpoint') orderEl.value = String(order+1);
+}
+
+// ── Save ──
+btnSave.addEventListener('click', async () => {
+  btnSave.disabled=true; btnSave.textContent='Saving…';
+  try {
+    const r = await fetch('/api/cameras/zones', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(zones, null, 2)
+    });
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    showToast('Zones saved!', false);
+    status('All zones saved to server.');
+  } catch(e) { showToast('Save failed: '+e.message, true); }
+  finally { btnSave.disabled=false; btnSave.textContent='Save All Zones'; }
+});
+
+// ── Enhance toggle (boost dark cameras) ──
+let enhanced = false;
+document.getElementById('btnEnhance').addEventListener('click', () => {
+  enhanced = !enhanced;
+  bgImg.style.filter = enhanced ? 'brightness(3) contrast(1.6) saturate(1.4)' : '';
+  const btn = document.getElementById('btnEnhance');
+  btn.style.borderColor = enhanced ? '#ffce6a' : '';
+  btn.style.color       = enhanced ? '#ffce6a' : '';
+});
+
+// ── Refresh snap ──
+btnRefresh.addEventListener('click', loadSnap);
+
+document.getElementById('btnSetCrop').addEventListener('click', () => {
+  if (drawing) return;
+  cropMode = !cropMode;
+  cropAnchor = null; cropCurrent = null;
+  const btn = document.getElementById('btnSetCrop');
+  if (cropMode) {
+    btn.classList.add('btn-crop-active');
+    status('Drag a rectangle around the area you want to zoom in on, then release.');
+  } else {
+    btn.classList.remove('btn-crop-active');
+    status('Crop mode cancelled.');
+    redraw();
+  }
+});
+document.getElementById('btnClearCrop').addEventListener('click', async () => {
+  delete digitalZoom[cam];
+  await saveCrop();
+  updateCropButtons();
+  bgImg.style.opacity = '';
+  redraw();
+  status('Crop removed for this camera.');
+});
+
+// ── Toast ──
+function showToast(msg, err) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(err?' err':'')+' show';
+  setTimeout(()=>{ t.className='toast'+(err?' err':''); }, 2800);
+}
+
+// ── Init ──
+async function init() {
+  try { const r=await fetch('/api/cameras/zones'); if(r.ok) zones=await r.json(); } catch{}
+  try {
+    const r=await fetch('/api/cameras/state');
+    if(r.ok) {
+      const data=await r.json();
+      const labels={};
+      (data.channels||[]).forEach(ch => { labels[String(ch.id)]=ch.name; });
+      if(Object.keys(labels).length) CAM_LABELS=labels;
+    }
+  } catch{}
+  try {
+    const r=await fetch('/api/cameras/digital-zoom');
+    if(r.ok) digitalZoom=await r.json();
+  } catch{}
+  buildTabs(); loadSnap(); renderList(); updateCropButtons();
+}
+init();
+</script>
+</body>
+</html>

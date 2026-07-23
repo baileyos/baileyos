@@ -1,0 +1,15 @@
+{
+  "name": "Bailey Smart Home",
+  "short_name": "Bailey",
+  "description": "BaileyOS - Smart Home Platform",
+  "start_url": "/bailey",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "title": "Integration",
+  "subtitle": "Ongoing build-out: new capabilities & architecture",
+  "updated": "2026-06-08",
+  "open": [
+    { "t": "Internet/WiFi strength map -- show signal strength per room to find weak spots. Likely sources: the location plugin's WiFi-AP RSSI scanning + house-map room layout, and/or the router API.", "g": "future" },
+    { "t": "Lighting page reorg -- active lights first, then by area (Upstairs/Downstairs/Front/Rear), then by room", "g": "remote", "note": "blocked: need room->area map" },
+    { "t": "Modularity hardening -- make scenes + av-devices skip a missing plugin (graceful degradation)", "g": "on-site" },
+    { "t": "JARVIS Foundation 1 -- Device/presence tracking. ENGINE BUILT: location plugin pulls all connected devices + per-device AP signal. TO FINISH: (1) map which carried device belongs to which person; (2) map each WiFi AP to an area. Then wire the 2 maps into config + restart.", "g": "on-site" },
+    { "t": "JARVIS Foundation 2 -- Identity: enroll faces (gallery) + voices (voiceprints) and wire recognition into the dashboard/voice loop. Both stores currently empty.", "g": "future" },
+    { "t": "JARVIS -- Location-adaptive desktop dashboard: the view changes with your room; shows current room + that area's lights (on/off) + quick nav to other devices.", "g": "future" },
+    { "t": "JARVIS -- Audio: auto-turn-on the zone for the room you're in.", "g": "future" },
+    { "t": "JARVIS -- Gate: detect a car at / entering the gate and push a notification (extend vision-ai YOLO on the gate cam + alerts).", "g": "future" },
+    { "t": "JARVIS -- Detect a package delivery and notify.", "g": "future" },
+    { "t": "Retire/relabel unused per-plugin widget.html files (shell.html is the canonical UI)", "g": "ongoing" },
+    { "t": "Migrate Vision + Voice services AND their data into the plugins -- they currently live in a legacy tree. Plugins are only proxies today, so they aren't self-contained or delete-safe.", "g": "future" }
+  ],
+  "done": [
+    { "t": "Guided audio flow built", "n": "service tiles (Spotify/Sirius/Pandora/iHeart/Prime) -> zone picker -> routes Input 1 default / Input 2 if busy -> opens app; safe commands only", "d": "2026-06-03" },
+    { "t": "Delete-safe + graceful degradation set as standing architecture goal", "n": "recorded; drivers already fault-isolated; new UI built dynamic/null-safe", "d": "2026-06-03" },
+    { "t": "Confirmed audio-bridge is a clean-delete candidate", "n": "fully orphaned; only its own config entry references it; queued for cleanup", "d": "2026-06-03" },
+    { "t": "Task lists surfaced in the admin panel", "n": "Tasks + Integration read from static JSON; no restart", "d": "2026-06-03" },
+    { "t": "Delete-safe UI -- dashboard tiles/tabs gate on /api/plugins", "n": "home tiles (lights/security/audio/camera/locks/gate) + Audio/Cameras tabs auto-hide if their plugin isn't loaded; FAIL-OPEN (hides nothing if it can't confirm); verified 0 hidden with all 15 plugins present.", "d": "2026-06-03" },
+    { "t": "Router login unblocked", "n": "Pynetgear logs in and pulls connected devices with live signal %. This unblocks presence tracking AND the WiFi strength map.", "d": "2026-06-04" }
+  ]
+}

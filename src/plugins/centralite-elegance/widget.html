@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centralite Elegance - Lighting Control</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    color: #eceef3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    background: rgba(20, 22, 30, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #ffe6b0, #ffc64d);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header .status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(212, 168, 83, 0.15);
+    color: #d4a853;
+  }
+  .header .status.connected { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+  .all-off-btn {
+    background: rgba(220, 38, 38, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(220, 38, 38, 0.4);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  .all-off-btn:hover { background: rgba(220, 38, 38, 0.4); }
+  .zone-group {
+    margin-bottom: 24px;
+  }
+  .zone-title {
+    display: inline-block;
+    font-size: 12px;
+    color: #ffce6a;
+    font-weight: 700;
+    margin-bottom: 10px;
+    padding: 5px 12px;
+    background: rgba(20, 22, 30, 0.82);
+    border: 1px solid rgba(240, 185, 85, 0.3);
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .zone-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+  }
+  .relay-tile {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px;
+    transition: all 0.2s;
+  }
+  .relay-tile.on {
+    background: linear-gradient(160deg, rgba(240,185,85,0.2), rgba(240,185,85,0.05)), rgba(20, 22, 30, 0.92);
+    border-color: rgba(240, 185, 85, 0.5);
+  }
+  .relay-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .relay-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #ccc;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+  .relay-tile.on .relay-name { color: #fff; }
+  .relay-id {
+    font-size: 10px;
+    color: #666;
+    margin-right: 6px;
+  }
+  /* Toggle Switch */
+  .toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 11px;
+    transition: 0.3s;
+  }
+  .toggle .slider:before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background: #666;
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+  .toggle input:checked + .slider {
+    background: rgba(212, 168, 83, 0.5);
+  }
+  .toggle input:checked + .slider:before {
+    transform: translateX(18px);
+    background: #d4a853;
+  }
+  /* Dim Slider */
+  .dim-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dim-row .dim-label {
+    font-size: 10px;
+    color: #888;
+    min-width: 28px;
+    text-align: right;
+  }
+  .dim-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+  }
+  .dim-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #d4a853;
+    cursor: pointer;
+  }
+  .dim-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #d4a853;
+    cursor: pointer;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Lighting Control</h1>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span class="status" id="connStatus">Connecting...</span>
+    <button class="all-off-btn" onclick="allOff()">ALL OFF</button>
+  </div>
+</div>
+<div id="zones"></div>
+
+<script>
+const RELAY_ZONES = {
+  1:"Mother-in-Law Suite",2:"Utility",3:"Living Room",4:"Exterior",5:"Exterior",
+  6:"Foyer/Entry",7:"Exterior",8:"Garage",9:"Utility",10:"Kitchen",
+  11:"Kitchen",12:"Kitchen",13:"Kitchen",14:"Hallways 1F",15:"Foyer/Entry",
+  16:"Kitchen",17:"Master Bathroom",18:"Dining Room",19:"Kitchen",
+  20:"Exterior",21:"Garage",22:"Kitchen",23:"Dining Room",24:"Kitchen",
+  25:"Garage",26:"Master Bedroom",27:"Master Closet",28:"Mother-in-Law Suite",
+  29:"Master Bedroom",30:"Master Bedroom",31:"Master Bedroom",
+  32:"Mother-in-Law Suite",33:"Mother-in-Law Suite",34:"Mother-in-Law Suite",
+  35:"Master Bathroom",36:"Mother-in-Law Suite",37:"Sewing Room",
+  38:"Sewing Room",39:"Mother-in-Law Suite",40:"Sewing Room",
+  41:"Exterior",42:"Master Bedroom",43:"Master Bathroom",
+  44:"Master Bathroom",45:"Master Bathroom",46:"Living Room",
+  47:"Exterior",49:"Living Room",50:"Exterior",51:"Laundry",
+  52:"Living Room",53:"Living Room",54:"Foyer/Entry",55:"Living Room",
+  56:"Hallways 1F",57:"Movie Room",58:"Concessions",59:"Office",
+  60:"Downstairs Bath",61:"Movie Room",62:"Movie Room",63:"Bedroom Hallway",
+  64:"Foyer/Entry",65:"Exterior",66:"Downstairs Bath",67:"Hallways 1F",
+  68:"Bedroom Hallway",69:"East Bedroom",70:"West Bedroom",
+  71:"West Bedroom",72:"West Bathroom",73:"Concessions",74:"Wine Cellar",
+  75:"Movie Room",76:"Downstairs Bath",77:"Movie Room",78:"Movie Room",
+  79:"Movie Room",81:"Concessions",82:"Movie Room",84:"Movie Room",
+  85:"West Bathroom",86:"Kitchen",87:"Exterior",88:"Laundry",
+  89:"West Bathroom",90:"Exterior",91:"Movie Room",92:"Exterior",
+  93:"Exterior",94:"Exterior",95:"Concessions",96:"Exterior"
+};
+
+const ZONE_ORDER = [
+  "Kitchen","Dining Room","Living Room","Foyer/Entry","Hallways 1F",
+  "Laundry","Garage","Movie Room","Concessions","Office",
+  "Downstairs Bath","Wine Cellar","Master Bedroom","Master Bathroom",
+  "Master Closet","East Bedroom","West Bedroom","West Bathroom",
+  "Bedroom Hallway","Sewing Room","Mother-in-Law Suite","Exterior","Utility"
+];
+
+let relayState = {};
+let debounceTimers = {};
+
+function render(relays) {
+  relayState = {};
+  relays.forEach(function(r) { relayState[r.relay] = r; });
+
+  // Group by zone
+  var grouped = {};
+  relays.forEach(function(r) {
+    var zone = RELAY_ZONES[r.relay] || 'Other';
+    if (!grouped[zone]) grouped[zone] = [];
+    grouped[zone].push(r);
+  });
+
+  var html = '';
+  ZONE_ORDER.forEach(function(zoneName) {
+    var items = grouped[zoneName];
+    if (!items || items.length === 0) return;
+    items.sort(function(a, b) { return a.relay - b.relay; });
+    html += '<div class="zone-group">';
+    html += '<div class="zone-title">' + zoneName + '</div>';
+    html += '<div class="zone-grid">';
+    items.forEach(function(r) {
+      html += '<div class="relay-tile' + (r.on ? ' on' : '') + '" id="tile-' + r.relay + '">';
+      html += '<div class="relay-top">';
+      html += '<span class="relay-id">#' + r.relay + '</span>';
+      html += '<span class="relay-name" title="' + r.name + '">' + r.name + '</span>';
+      html += '<label class="toggle">';
+      html += '<input type="checkbox"' + (r.on ? ' checked' : '') + ' onchange="toggleRelay(' + r.relay + ', this.checked)">';
+      html += '<span class="slider"></span></label>';
+      html += '</div>';
+      if (r.dimmable) {
+        html += '<div class="dim-row">';
+        html += '<input type="range" class="dim-slider" min="0" max="100" value="' + r.level + '" id="dim-' + r.relay + '" oninput="dimLabel(' + r.relay + ', this.value)" onchange="dimRelay(' + r.relay + ', this.value)">';
+        html += '<span class="dim-label" id="dimlbl-' + r.relay + '">' + r.level + '%</span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('zones').innerHTML = html;
+}
+
+function toggleRelay(id, on) {
+  fetch('/api/lighting/relay/' + id, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ on: on })
+  });
+}
+
+function dimLabel(id, val) {
+  var lbl = document.getElementById('dimlbl-' + id);
+  if (lbl) lbl.textContent = val + '%';
+}
+
+function dimRelay(id, val) {
+  if (debounceTimers[id]) clearTimeout(debounceTimers[id]);
+  debounceTimers[id] = setTimeout(function() {
+    fetch('/api/lighting/dim/' + id, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: parseInt(val) })
+    });
+  }, 150);
+}
+
+function allOff() {
+  if (confirm('Turn off ALL lights?')) {
+    fetch('/api/lighting/all-off', { method: 'POST' });
+  }
+}
+
+function updateTile(data) {
+  if (data.type !== 'relay') return;
+  var r = data;
+  relayState[r.relay] = r;
+  var tile = document.getElementById('tile-' + r.relay);
+  if (!tile) return;
+  if (r.on) { tile.classList.add('on'); } else { tile.classList.remove('on'); }
+  var cb = tile.querySelector('input[type="checkbox"]');
+  if (cb) cb.checked = r.on;
+  var slider = document.getElementById('dim-' + r.relay);
+  if (slider && r.level !== undefined) slider.value = r.level;
+  var lbl = document.getElementById('dimlbl-' + r.relay);
+  if (lbl && r.level !== undefined) lbl.textContent = r.level + '%';
+}
+
+// Initial load
+fetch('/api/lighting/state')
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var el = document.getElementById('connStatus');
+    if (data.connected) {
+      el.textContent = data.mock ? 'Mock Mode' : 'Connected';
+      el.classList.add('connected');
+    } else {
+      el.textContent = 'Disconnected';
+    }
+    render(data.relays || []);
+  })
+  .catch(function() {
+    document.getElementById('connStatus').textContent = 'Error';
+  });
+
+// SSE for live updates
+var evtSource = new EventSource('/api/centralite-elegance/stream');
+evtSource.onmessage = function(e) {
+  try {
+    var data = JSON.parse(e.data);
+    updateTile(data);
+  } catch(err) {}
+};
+evtSource.onerror = function() {
+  document.getElementById('connStatus').textContent = 'SSE Lost';
+  document.getElementById('connStatus').classList.remove('connected');
+};
+</script>
+</body>
+</html>

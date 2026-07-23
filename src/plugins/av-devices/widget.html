@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AV Devices</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: transparent;
+    color: #eceef3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .header h2 { color: #ffce6a; font-size: 18px; font-weight: 600; }
+  .receiver-cards { display: flex; flex-direction: column; gap: 12px; }
+  .receiver-card {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .rx-name { color: #ffce6a; font-size: 15px; font-weight: 600; }
+  .rx-status { font-size: 11px; color: #666; }
+  .rx-status.connected { color: #22c55e; }
+
+  .power-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(20, 22, 30, 0.9);
+    color: #666;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .power-btn.on {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: rgba(34,197,94,0.1);
+  }
+  .power-btn:hover { border-color: #ffce6a; }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .control-label { font-size: 11px; color: #888; min-width: 50px; }
+
+  .volume-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.12);
+    outline: none;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #ffce6a;
+    cursor: pointer;
+  }
+  .volume-info {
+    font-size: 12px;
+    min-width: 65px;
+    text-align: right;
+  }
+  .volume-info .vol-val { color: #ffce6a; font-weight: 600; }
+  .volume-info .vol-db { color: #666; font-size: 10px; }
+
+  .vol-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .vol-btn:hover { border-color: #ffce6a; color: #ffce6a; }
+
+  .mute-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #999;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .mute-btn.muted {
+    background: rgba(239,68,68,0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+  }
+
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .input-btn {
+    background: rgba(20, 22, 30, 0.9);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 8px 4px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 11px;
+    color: #aaa;
+    transition: all 0.2s;
+  }
+  .input-btn:hover { border-color: #ffce6a; color: #ffce6a; }
+  .input-btn.active {
+    background: rgba(212,168,83,0.15);
+    border-color: #ffce6a;
+    color: #ffce6a;
+    font-weight: 600;
+  }
+  .section-label {
+    font-size: 11px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+  .mock-notice {
+    text-align: center;
+    color: #f59e0b;
+    font-size: 13px;
+    padding: 20px;
+  }
+  /* header polish — dark glass bar (matches Audio/Lights) */
+  .header { background: rgba(20,22,30,0.82) !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 14px !important; padding: 12px 16px !important; }
+  .header h1, .header h2, .header .title { background: linear-gradient(90deg, #ffe6b0, #ffc64d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2>AV Devices</h2>
+</div>
+<div id="content"></div>
+
+<script>
+  var content = document.getElementById('content');
+  var knownInputs = {};
+
+  function apiPost(endpoint, body) {
+    return fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function(r) { return r.json(); });
+  }
+
+  function renderReceivers(data) {
+    knownInputs = data.knownInputs || {};
+
+    if (data.mockMode || !data.receivers || data.receivers.length === 0) {
+      content.innerHTML = '<div class="mock-notice">No receivers configured (mock mode)</div>';
+      return;
+    }
+
+    var html = '<div class="receiver-cards">';
+    data.receivers.forEach(function(rx) {
+      var connClass = rx.connected ? 'connected' : '';
+      var connLabel = rx.connected ? 'Connected' : 'Disconnected';
+      var powerClass = rx.power ? ' on' : '';
+      var dbStr = rx.volumeDb >= 0 ? '+' + rx.volumeDb : String(rx.volumeDb);
+
+      html += '<div class="receiver-card">';
+
+      // Header
+      html += '<div class="card-header">';
+      html += '<div><div class="rx-name">' + rx.name + '</div>';
+      html += '<div class="rx-status ' + connClass + '">' + connLabel + '</div></div>';
+      html += '<button class="power-btn' + powerClass + '" onclick="togglePower(\'' + rx.id + '\',' + !rx.power + ')" title="Power">\u23FB</button>';
+      html += '</div>';
+
+      // Volume row
+      html += '<div class="control-row">';
+      html += '<span class="control-label">Volume</span>';
+      html += '<button class="vol-btn" onclick="volAction(\'' + rx.id + '\',\'down\')">\u2212</button>';
+      html += '<input type="range" class="volume-slider" min="0" max="98" step="0.5" value="' + rx.volume + '" onchange="setVol(\'' + rx.id + '\',this.value)">';
+      html += '<button class="vol-btn" onclick="volAction(\'' + rx.id + '\',\'up\')">+</button>';
+      html += '<div class="volume-info"><span class="vol-val">' + rx.volume + '</span><br><span class="vol-db">' + dbStr + ' dB</span></div>';
+      html += '<button class="mute-btn' + (rx.muted ? ' muted' : '') + '" onclick="toggleMute(\'' + rx.id + '\',' + !rx.muted + ')">' + (rx.muted ? '\uD83D\uDD07 Muted' : '\uD83D\uDD0A') + '</button>';
+      html += '</div>';
+
+      // Input selector grid
+      html += '<div class="section-label">Input Source</div>';
+      html += '<div class="input-grid">';
+      var inputs = Object.keys(knownInputs);
+      inputs.forEach(function(key) {
+        var isActive = rx.input === key ? ' active' : '';
+        html += '<div class="input-btn' + isActive + '" onclick="setInput(\'' + rx.id + '\',\'' + key + '\')">' + knownInputs[key] + '</div>';
+      });
+      html += '</div>';
+
+      html += '</div>'; // receiver-card
+    });
+    html += '</div>';
+    content.innerHTML = html;
+  }
+
+  function togglePower(id, on) {
+    apiPost('/api/av/power', { id: id, on: on }).then(function() {
+      setTimeout(fetchState, 1000);
+    });
+  }
+  function setVol(id, level) {
+    apiPost('/api/av/volume', { id: id, level: parseFloat(level) });
+  }
+  function volAction(id, action) {
+    apiPost('/api/av/volume', { id: id, action: action }).then(function() {
+      setTimeout(fetchState, 500);
+    });
+  }
+  function toggleMute(id, muted) {
+    apiPost('/api/av/mute', { id: id, muted: muted }).then(fetchState);
+  }
+  function setInput(id, input) {
+    apiPost('/api/av/input', { id: id, input: input }).then(fetchState);
+  }
+
+  async function fetchState() {
+    try {
+      var res = await fetch('/api/av/state');
+      var data = await res.json();
+      renderReceivers(data);
+    } catch (e) {
+      content.innerHTML = '<div class="mock-notice">Connection error</div>';
+    }
+  }
+
+  fetchState();
+  setInterval(fetchState, 5000);
+</script>
+</body>
+</html>
