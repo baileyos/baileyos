@@ -1,4 +1,4 @@
-// MalamaOS Plugin: AV Devices (Marantz/Denon)
+// BaileyOS Plugin: AV Devices (Marantz/Denon)
 // Production Denon/Marantz IP control via TCP telnet on port 23
 // ASCII command protocol for power, volume, mute, input control
 

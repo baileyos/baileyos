@@ -1,4 +1,4 @@
-﻿// MalamaOS Plugin: ELK M1 Security Panel
+﻿// BaileyOS Plugin: ELK M1 Security Panel
 // ASCII messages over TCP (default port 2101 on M1XEP module)
 // Full production protocol embedded directly
 
@@ -474,7 +474,7 @@ class ElkM1 extends EventEmitter {
   }
 }
 
-// --- MalamaOS Plugin Wrapper ---
+// --- BaileyOS Plugin Wrapper ---
 
 function parseBodyFromReq(req: IncomingMessage): Promise<any> {
   return new Promise((resolve) => {

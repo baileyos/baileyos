@@ -1,4 +1,4 @@
-// MalamaOS Plugin: Reolink IP Cameras
+// BaileyOS Plugin: Reolink IP Cameras
 // RTSP snapshot loop + HLS live streaming via ffmpeg
 // RTSP URL format: rtsp://user:pass@host:554/h264Preview_01_main (main)
 //                  rtsp://user:pass@host:554/h264Preview_01_sub  (sub)

@@ -1,4 +1,4 @@
-// MalamaOS SSE Manager
+// BaileyOS SSE Manager
 // Auto-creates SSE endpoints per plugin, broadcasts state changes
 
 import { IncomingMessage, ServerResponse } from 'http';

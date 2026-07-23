@@ -1,4 +1,4 @@
-// MalamaOS Plugin: LG webOS TV
+// BaileyOS Plugin: LG webOS TV
 // SSAP protocol over WebSocket for full TV control
 // Wake-on-LAN for power on, client-key pairing persistence
 
@@ -16,10 +16,10 @@ const SSAP_MANIFEST = {
   appVersion: '1.0.0',
   signed: {
     created: '20240101',
-    appId: 'com.malamaos.lg-tv',
-    vendorId: 'com.malamaos',
-    localizedAppNames: { '': 'MalamaOS LG TV' },
-    localizedVendorNames: { '': 'MalamaOS' },
+    appId: 'com.baileyos.lg-tv',
+    vendorId: 'com.baileyos',
+    localizedAppNames: { '': 'BaileyOS LG TV' },
+    localizedVendorNames: { '': 'BaileyOS' },
     permissions: [
       'LAUNCH', 'LAUNCH_WEBAPP', 'APP_TO_APP',
       'CONTROL_AUDIO', 'CONTROL_DISPLAY', 'CONTROL_INPUT_JOYSTICK',
@@ -30,7 +30,7 @@ const SSAP_MANIFEST = {
       'READ_NETWORK_STATE', 'READ_RUNNING_APPS', 'READ_TV_CHANNEL_LIST',
       'WRITE_NOTIFICATION',
     ],
-    serial: 'malamaos-001',
+    serial: 'baileyos-001',
   },
   permissions: [
     'LAUNCH', 'LAUNCH_WEBAPP', 'APP_TO_APP',

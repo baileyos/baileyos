@@ -1,4 +1,4 @@
-// MalamaOS Plugin: Apple TV
+// BaileyOS Plugin: Apple TV
 // Network control for Apple TV devices via pyatv — no IR needed, local WiFi only.
 //
 // SETUP (one-time per Apple TV):

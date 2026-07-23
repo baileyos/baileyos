@@ -1,4 +1,4 @@
-// MalamaOS Plugin: Mitsubishi Projector
+// BaileyOS Plugin: Mitsubishi Projector
 // PJLink protocol (TCP port 4352) — stateless per-command connection
 // Supports power, input selection, AV mute, and status polling
 

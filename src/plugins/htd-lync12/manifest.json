@@ -1,1 +1,1 @@
-{   "id": "htd-lync12",   "name": "HTD Lync 12",   "version": "1.0.0",   "category": "audio",   "icon": "speaker",   "description": "12-zone whole-home audio",   "author": "MalamaOS",   "discovery": { "network": { "ports": [10006] } },   "widget": "widget.html",   "driver": "driver.ts" }
+{   "id": "htd-lync12",   "name": "HTD Lync 12",   "version": "1.0.0",   "category": "audio",   "icon": "speaker",   "description": "12-zone whole-home audio",   "author": "BaileyOS",   "discovery": { "network": { "ports": [10006] } },   "widget": "widget.html",   "driver": "driver.ts" }

@@ -1,4 +1,4 @@
-// MalamaOS Plugin: HTD Lync 12
+// BaileyOS Plugin: HTD Lync 12
 // 12-zone whole-home audio controller
 // Protocol: 6-byte binary commands over TCP via GW-SL1 gateway (default port 10006)
 // Full production protocol embedded directly
@@ -418,7 +418,7 @@ class HtdLync12 extends EventEmitter {
   }
 }
 
-// --- MalamaOS Plugin Wrapper ---
+// --- BaileyOS Plugin Wrapper ---
 
 function parseBodyFromReq(req: IncomingMessage): Promise<any> {
   return new Promise((resolve) => {

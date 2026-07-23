@@ -1,4 +1,4 @@
-// MalamaOS Plugin: ratgdo Garage Doors
+// BaileyOS Plugin: ratgdo Garage Doors
 // Subscribes to ratgdo MQTT topics for LiftMaster open/close status and control.
 // Requires: mosquitto (or any MQTT broker) running on BAILEY-AI.
 // Install:  choco install mosquitto   (or scoop install mosquitto)

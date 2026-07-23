@@ -5,7 +5,7 @@
   "category": "sprinklers",
   "icon": "sprinkler",
   "description": "Rain Bird ESP-ME3 irrigation controller via LNK WiFi module",
-  "author": "MalamaOS",
+  "author": "BaileyOS",
   "widget": "widget.html",
   "driver": "driver.ts"
 }

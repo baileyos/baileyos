@@ -1,4 +1,4 @@
-// MalamaOS Plugin: XMeye DVR Cameras
+// BaileyOS Plugin: XMeye DVR Cameras
 // RTSP snapshot + MJPEG streaming via ffmpeg
 // Serial snapshot loop: one camera at a time, 2s gap between channels
 

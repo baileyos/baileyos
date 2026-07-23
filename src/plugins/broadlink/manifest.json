@@ -5,6 +5,6 @@
   "category": "av-control",
   "icon": "media",
   "description": "IR and RF blaster control via BroadLink RM4 Pro — TVs, cable boxes, AV receivers, ceiling fans",
-  "author": "MalamaOS",
+  "author": "BaileyOS",
   "driver": "driver.ts"
 }

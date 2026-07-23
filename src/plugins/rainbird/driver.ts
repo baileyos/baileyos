@@ -1,4 +1,4 @@
-// MalamaOS Plugin: Rain Bird Sprinklers
+// BaileyOS Plugin: Rain Bird Sprinklers
 // Bridges to the rainbird_sidecar.py (pyrainbird) to control the ESP-ME3 via LNK WiFi.
 
 import { BasePlugin } from '../../core/plugin-interface';

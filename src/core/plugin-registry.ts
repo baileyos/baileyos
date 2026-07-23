@@ -1,13 +1,13 @@
-// MalamaOS Plugin Registry
+// BaileyOS Plugin Registry
 // Discovers, loads, and manages all plugins
 
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as path from 'path';
-import { MalamaPlugin, PluginManifest } from './plugin-interface';
+import { BaileyPlugin, PluginManifest } from './plugin-interface';
 
 export class PluginRegistry extends EventEmitter {
-  private plugins: Map<string, MalamaPlugin> = new Map();
+  private plugins: Map<string, BaileyPlugin> = new Map();
   private manifests: Map<string, PluginManifest> = new Map();
   private pluginsDir: string;
   private config: any;
@@ -64,7 +64,7 @@ export class PluginRegistry extends EventEmitter {
     const driverPath = path.join(pluginDir, manifest.driver.replace('.ts', ''));
     const driverModule = require(driverPath);
 
-    let plugin: MalamaPlugin;
+    let plugin: BaileyPlugin;
     if (typeof driverModule.createPlugin === 'function') {
       plugin = driverModule.createPlugin(manifest);
     } else if (typeof driverModule.default === 'function') {
@@ -99,15 +99,15 @@ export class PluginRegistry extends EventEmitter {
     this.manifests.set(manifest.id, manifest);
   }
 
-  getPlugin(id: string): MalamaPlugin | undefined {
+  getPlugin(id: string): BaileyPlugin | undefined {
     return this.plugins.get(id);
   }
 
-  getPlugins(): Map<string, MalamaPlugin> {
+  getPlugins(): Map<string, BaileyPlugin> {
     return this.plugins;
   }
 
-  getPluginsByCategory(category: string): MalamaPlugin[] {
+  getPluginsByCategory(category: string): BaileyPlugin[] {
     return Array.from(this.plugins.values()).filter(p => p.category === category);
   }
 

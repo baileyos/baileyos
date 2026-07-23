@@ -1,4 +1,4 @@
-// MalamaOS Plugin: BroadLink IR/RF Control
+// BaileyOS Plugin: BroadLink IR/RF Control
 // Controls TVs, cable boxes, AV receivers, and RF ceiling fans via BroadLink RM4 Pro.
 //
 // SETUP:

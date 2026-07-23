@@ -1,4 +1,4 @@
-// MalamaOS API Router
+// BaileyOS API Router
 // Auto-registers plugin routes - no per-plugin code
 
 import { IncomingMessage, ServerResponse } from 'http';

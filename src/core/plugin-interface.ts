@@ -1,4 +1,4 @@
-// MalamaOS Plugin Interface Contract
+// BaileyOS Plugin Interface Contract
 // Every plugin must implement this interface
 
 import { EventEmitter } from 'events';
@@ -46,7 +46,7 @@ export interface PluginManifest {
   driver: string;
 }
 
-export interface MalamaPlugin extends EventEmitter {
+export interface BaileyPlugin extends EventEmitter {
   id: string;
   name: string;
   version: string;
@@ -64,7 +64,7 @@ export interface MalamaPlugin extends EventEmitter {
   widgetPath: string;
 }
 
-export abstract class BasePlugin extends EventEmitter implements MalamaPlugin {
+export abstract class BasePlugin extends EventEmitter implements BaileyPlugin {
   id: string;
   name: string;
   version: string;

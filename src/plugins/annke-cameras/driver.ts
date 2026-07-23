@@ -1,4 +1,4 @@
-// MalamaOS Plugin: Annke DVR Cameras (Hikvision-OEM)
+// BaileyOS Plugin: Annke DVR Cameras (Hikvision-OEM)
 // RTSP snapshot + MJPEG streaming via ffmpeg
 // Serial snapshot loop: one camera at a time, 2s gap between channels
 // Identical contract to xmeye-cameras; only the RTSP dialect differs

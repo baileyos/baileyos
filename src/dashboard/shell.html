@@ -4265,7 +4265,7 @@ function closeSecOverlay() {
 
 /* Ã¢"â‚¬Ã¢"â‚¬ (Edit + All Off removed â€” Controls section is clean) Ã¢"â‚¬Ã¢"â‚¬ */
 </script>
-<!-- MalamaOS Modular Layers (loaded separately, skin-independent) -->
+<!-- BaileyOS Modular Layers (loaded separately, skin-independent) -->
 <script src="/overlay-engine.js"></script>
 <script src="/admin-module.js?v=22"></script>
 <script src="/network-3d.js"></script>
@@ -4655,8 +4655,9 @@ function toggleChat() {
   var ov = document.getElementById('chat-overlay');
   var frame = document.getElementById('chat-frame');
   var isOpen = ov.classList.toggle('open');
+  // Chat widget available in BaileyOS Pro
   if (isOpen && frame && !frame.src) {
-    frame.src = '/plugins/chat/widget.html';
+    // frame.src = '/plugins/chat/widget.html'; // BaileyOS Pro feature
   }
 }
 // toggleChatMic is defined below by _BaileyRec module (requires HTTPS for getUserMedia)
@@ -4878,7 +4879,8 @@ function toggleChat() {
     const ov = document.getElementById('chat-overlay');
     const fr = document.getElementById('chat-frame');
     if (!ov.classList.contains('open')) {
-      if (!fr.getAttribute('src')) fr.setAttribute('src', '/plugins/chat/widget.html?v=' + Date.now());
+      // Chat widget available in BaileyOS Pro
+      // if (!fr.getAttribute('src')) fr.setAttribute('src', '/plugins/chat/widget.html?v=' + Date.now());
       ov.classList.add('open');
     } else {
       ov.classList.remove('open');
@@ -5484,17 +5486,10 @@ window.toggleChatMic = function() {
     try {
       const body = { message: text };
       if (mcConvId) body.conversation_id = mcConvId;
-      const r = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-      });
-      const d = await r.json();
-      mcConvId = d.conversation_id || mcConvId;
-      const reply = cleanBaileyReply(d.response || d.message || '');
-      if (!reply) { setStatus(''); return; }
+      // Voice-to-LLM chat available in BaileyOS Pro
+      const reply = 'Chat requires BaileyOS Pro.';
       addMsg(reply, 'bailey');
       setStatus('');
-      await speakReply(reply);
-      if (mcOpen) startListen();  // auto-listen again after Bailey replies
     } catch { setStatus('Bailey is offline'); }
   }
 

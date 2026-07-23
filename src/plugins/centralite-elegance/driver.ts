@@ -1,4 +1,4 @@
-// MalamaOS Plugin: Centralite Elegance / LiteJet
+// BaileyOS Plugin: Centralite Elegance / LiteJet
 // RS-232 serial lighting controller (19200 baud, 8N1)
 // Full production protocol embedded directly
 
@@ -471,7 +471,7 @@ class CentraliteElegance extends EventEmitter {
   }
 }
 
-// --- MalamaOS Plugin Wrapper ---
+// --- BaileyOS Plugin Wrapper ---
 
 function parseBody(req: IncomingMessage): Promise<any> {
   return new Promise((resolve) => {

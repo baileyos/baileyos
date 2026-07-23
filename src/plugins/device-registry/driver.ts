@@ -1,4 +1,4 @@
-﻿// MalamaOS Plugin: Device Registry
+﻿// BaileyOS Plugin: Device Registry
 // Tracks authorized camera devices by IP address
 
 import { BasePlugin } from '../../core/plugin-interface';

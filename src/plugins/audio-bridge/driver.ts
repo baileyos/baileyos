@@ -1,4 +1,4 @@
-// MalamaOS Plugin: Audio Bridge
+// BaileyOS Plugin: Audio Bridge
 // Routes Bailey TTS announcements to HTD Lync 12 zones via PC audio output.
 // Flow: Bailey calls /api/audio-bridge/speak → switch zone to PC source → play WAV via SoundPlayer → restore zone.
 //

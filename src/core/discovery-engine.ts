@@ -1,4 +1,4 @@
-// MalamaOS Discovery Engine
+// BaileyOS Discovery Engine
 // Scans network/serial/BLE and matches devices against plugin manifests
 
 import * as net from 'net';

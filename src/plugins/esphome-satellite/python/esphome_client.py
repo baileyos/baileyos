@@ -211,19 +211,10 @@ async def _pipeline(writer: asyncio.StreamWriter, pcm_data: bytes):
         await writer.drain()
         return
 
-    # Chat
+    # Voice-to-LLM integration available in BaileyOS Pro
     writer.write(_va_event(VA_INTENT_START))
     await writer.drain()
-    try:
-        resp = await _http_post(
-            f'http://127.0.0.1:{BAILEY_PORT}/api/chat',
-            json.dumps({'message': transcript}).encode(),
-            {'Content-Type': 'application/json'})
-        d = json.loads(resp)
-        reply = (d.get('reply') or d.get('response') or d.get('text') or '').strip()
-    except Exception as e:
-        print(f'[esphome] chat error: {e}', flush=True)
-        reply = "Sorry, I couldn't process that."
+    reply = "Voice-to-LLM chat requires BaileyOS Pro."
 
     print(f'[esphome] reply: {reply!r}', flush=True)
     writer.write(_va_event(VA_INTENT_END))

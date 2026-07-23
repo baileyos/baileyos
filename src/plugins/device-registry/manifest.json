@@ -1,1 +1,1 @@
-{"id":"device-registry","name":"Device Registry","version":"1.0.0","category":"automation","icon":"smartphone","description":"Camera-authorized device tracking","author":"MalamaOS","widget":"widget.html","driver":"driver.ts"}
+{"id":"device-registry","name":"Device Registry","version":"1.0.0","category":"automation","icon":"smartphone","description":"Camera-authorized device tracking","author":"BaileyOS","widget":"widget.html","driver":"driver.ts"}

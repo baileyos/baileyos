@@ -1,4 +1,4 @@
-﻿// MalamaOS Plugin: Shelly Gate Controller
+﻿// BaileyOS Plugin: Shelly Gate Controller
 // Shelly Gen 3 HTTP RPC API for relay-based gate/garage control.
 
 import * as fs from 'fs';
@@ -269,7 +269,7 @@ class ShellyGatePlugin extends BasePlugin {
     this.states.set(mockDevice.id, {
       id: 'gate-1', name: 'Driveway Gate', type: 'gate', host: '192.168.1.x',
       online: true, output: false, temperature: 42.5, uptime: 86400,
-      wifi_rssi: -55, wifi_ssid: 'MalamaOS-Net', firmware: '1.4.2-mock',
+      wifi_rssi: -55, wifi_ssid: 'BaileyOS-Net', firmware: '1.4.2-mock',
       mac: 'AA:BB:CC:DD:EE:FF', lastSeen: new Date().toISOString(),
     });
   }

@@ -1,4 +1,4 @@
-﻿// MalamaOS Plugin: TTLock Smart Locks
+﻿// BaileyOS Plugin: TTLock Smart Locks
 // TTLock Cloud API v3: https://euapi.ttlock.com/v3
 // BLE discovery UUID: 0000fee7-0000-1000-8000-00805f9b34fb
 
@@ -414,7 +414,7 @@ class TTLockPlugin extends BasePlugin {
     if (this.mockMode) {
       device.locked = true;
       device.lastActivity = new Date().toISOString();
-      this.addActivity(lockId, 'lock', 'MalamaOS', 'api');
+      this.addActivity(lockId, 'lock', 'BaileyOS', 'api');
       this.emit('stateChange', { type: 'lock', lockId, locked: true });
       return { success: true, message: device.name + ' locked' };
     }
@@ -425,7 +425,7 @@ class TTLockPlugin extends BasePlugin {
       this.cmdProtect.set(lockId, { locked: true, ts: Date.now() });
       const current = this.locks.get(lockId);
       if (current) { current.locked = true; current.stateKnown = true; current.lastActivity = new Date().toISOString(); }
-      this.addActivity(lockId, 'lock', 'MalamaOS', 'api');
+      this.addActivity(lockId, 'lock', 'BaileyOS', 'api');
       this.emit('stateChange', { type: 'lock', lockId, locked: true });
       return { success: true, message: device.name + ' locked' };
     }
@@ -441,7 +441,7 @@ class TTLockPlugin extends BasePlugin {
       device.locked = false;
       device.stateKnown = true;
       device.lastActivity = new Date().toISOString();
-      this.addActivity(lockId, 'unlock', 'MalamaOS', 'api');
+      this.addActivity(lockId, 'unlock', 'BaileyOS', 'api');
       this.emit('stateChange', { type: 'lock', lockId, locked: false });
       return { success: true, message: device.name + ' unlocked' };
     }
@@ -452,7 +452,7 @@ class TTLockPlugin extends BasePlugin {
       this.cmdProtect.set(lockId, { locked: false, ts: Date.now() });
       const current = this.locks.get(lockId);
       if (current) { current.locked = false; current.stateKnown = true; current.lastActivity = new Date().toISOString(); }
-      this.addActivity(lockId, 'unlock', 'MalamaOS', 'api');
+      this.addActivity(lockId, 'unlock', 'BaileyOS', 'api');
       this.emit('stateChange', { type: 'lock', lockId, locked: false });
       return { success: true, message: device.name + ' unlocked' };
     }

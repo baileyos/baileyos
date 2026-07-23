@@ -5,7 +5,7 @@
   "category": "gate",
   "icon": "gate",
   "description": "Shelly Gen 3 relay for gate control with auto-close",
-  "author": "MalamaOS",
+  "author": "BaileyOS",
   "discovery": { "network": { "ports": [80] } },
   "widget": "widget.html",
   "driver": "driver.ts"
