@@ -1,9 +1,3 @@
-<!-- BaileyOS Logo -->
-<!-- TODO: Replace with actual logo -->
-<p align="center">
-  <img src="docs/assets/logo-placeholder.png" alt="BaileyOS" width="300">
-</p>
-
 <h1 align="center">BaileyOS</h1>
 
 <p align="center">
@@ -67,8 +61,8 @@ For full details, see [docs/supported-devices.md](docs/supported-devices.md).
 ## Quick Start
 
 ```bash
-git clone https://github.com/baileyos/baileyos-community.git
-cd baileyos-community
+git clone https://github.com/baileyos/baileyos.git
+cd baileyos
 npm install
 npm run dev
 ```
