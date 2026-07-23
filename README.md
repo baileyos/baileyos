@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <img src="docs/screenshots/dashboard-main.png" alt="BaileyOS Dashboard" width="800">
+</p>
+
+<p align="center">
   <a href="#features">Features</a> |
   <a href="#supported-devices">Devices</a> |
   <a href="#quick-start">Quick Start</a> |
